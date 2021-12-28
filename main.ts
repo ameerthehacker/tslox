@@ -27,6 +27,7 @@ enum TokenType {
   MUL = 'MULTIPLY',
   OPEN_BRACE = 'OPEN_BRACE',
   CLOSE_BRACE = 'CLOSE_BRACE',
+  STRING = 'STRING',
 }
 
 type Token = {
@@ -78,6 +79,7 @@ class Lexer {
 
     while (!this.isEOF()) {
       const currentChar = this.advance();
+      this.start = this.current;
 
       switch (currentChar) {
         // ignore whitespace, tabs and linefeeds
@@ -178,6 +180,31 @@ class Lexer {
           this.addToken({
             type: TokenType.MUL,
             line: this.line,
+          });
+          break;
+        case '"':
+          while (this.peek() !== '"' && !this.isEOF()) {
+            if (this.peek() === '\n') ++this.line;
+            this.advance();
+          }
+
+          if (this.isEOF()) {
+            this.errorReporter.report(this.line, 'unterminated string literal');
+
+            return;
+          }
+
+          this.advance();
+
+          const stringLiteralValue = this.source.substring(
+            this.start,
+            this.current - 1
+          );
+
+          this.addToken({
+            type: TokenType.STRING,
+            line: this.line,
+            literalValue: stringLiteralValue,
           });
           break;
         default:
