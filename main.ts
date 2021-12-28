@@ -172,6 +172,17 @@ class Lexer {
         case '/':
           if (this.match('/')) {
             while (this.peek() !== '\n' && !this.isEOF()) this.advance();
+          } else if (this.match('*')) {
+            // comments can be multi lined
+            while (!(this.peek() === '*' && this.peekNext() === '/')) {
+              if (this.peek() === '\n') ++this.line;
+
+              this.advance();
+            }
+
+            // remove lat */
+            this.advance();
+            this.advance();
           } else {
             this.addToken({
               type: TokenType.SLASH,
