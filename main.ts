@@ -171,7 +171,7 @@ class Lexer {
           break;
         case '/':
           if (this.match('/')) {
-            while (this.peek() != '\n' && !this.isEOF()) this.advance();
+            while (this.peek() !== '\n' && !this.isEOF()) this.advance();
           } else {
             this.addToken({
               type: TokenType.SLASH,
@@ -179,6 +179,9 @@ class Lexer {
             });
           }
 
+          break;
+        case '#':
+          while (this.peek() !== '\n' && !this.isEOF()) this.advance();
           break;
         case '\n':
           ++this.line;

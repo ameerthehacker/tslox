@@ -1,4 +1,6 @@
 // these are just comments and will be ignored
+# we support python style comments also
+
 {
   ()()
   ==
