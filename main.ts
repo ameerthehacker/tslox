@@ -1,4 +1,4 @@
-#! env ./node_modules/.bin/ts-node
+#! ./node_modules/.bin/ts-node
 import { promises as fs } from 'fs';
 
 interface ErrorReporter {
@@ -28,7 +28,14 @@ enum TokenType {
   OPEN_BRACE = 'OPEN_BRACE',
   CLOSE_BRACE = 'CLOSE_BRACE',
   STRING = 'STRING',
+  NUMBER = 'NUMBER',
+  IDENTIFIER = 'IDENTIFIER',
+  FOR = 'FOR',
 }
+
+const RESERVED_KEYWORDS: Record<string, TokenType> = {
+  for: TokenType.FOR,
+};
 
 type Token = {
   type: TokenType;
@@ -46,6 +53,12 @@ class Lexer {
 
   private peek() {
     return this.source.charAt(this.current);
+  }
+
+  private peekNext() {
+    return this.current < this.source.length
+      ? this.source.charAt(this.current + 1)
+      : '';
   }
 
   private advance() {
@@ -72,14 +85,83 @@ class Lexer {
     }
   }
 
+  private eatString() {
+    while (this.peek() !== '"' && !this.isEOF()) {
+      if (this.peek() === '\n') ++this.line;
+      this.advance();
+    }
+
+    if (this.isEOF()) {
+      this.errorReporter.report(this.line, 'unterminated string literal');
+
+      return;
+    }
+
+    this.advance();
+
+    const stringLiteralValue = this.source.substring(
+      this.start + 1,
+      this.current - 1
+    );
+
+    this.addToken({
+      type: TokenType.STRING,
+      line: this.line,
+      literalValue: stringLiteralValue,
+    });
+  }
+
+  private isDigit(currentChar: string) {
+    return /\d/.test(currentChar);
+  }
+
+  private isAlphaNumeric(currentChar: string) {
+    return /[_a-zA-Z0-9]/.test(currentChar);
+  }
+
+  private eatIdentifier() {
+    while (this.isAlphaNumeric(this.peek()) && !this.isEOF()) this.advance();
+
+    const identifierLiteralValue = this.source.substring(
+      this.start,
+      this.current
+    );
+    const tokenType =
+      RESERVED_KEYWORDS[identifierLiteralValue] || TokenType.IDENTIFIER;
+
+    this.addToken({
+      type: tokenType,
+      literalValue: identifierLiteralValue,
+      line: this.line,
+    });
+  }
+
+  private eatNumber() {
+    while (this.isDigit(this.peek()) && !this.isEOF()) this.advance();
+
+    if (this.peek() === '.' && this.isDigit(this.peekNext())) {
+      this.advance();
+    }
+
+    while (this.isDigit(this.peek()) && !this.isEOF()) this.advance();
+
+    const numberLiteralValue = this.source.substring(this.start, this.current);
+
+    this.addToken({
+      type: TokenType.NUMBER,
+      literalValue: numberLiteralValue,
+      line: this.line,
+    });
+  }
+
   lex() {
     this.start = this.current = 0;
     this.line = 1;
     this.tokens = [];
 
     while (!this.isEOF()) {
-      const currentChar = this.advance();
       this.start = this.current;
+      const currentChar = this.advance();
 
       switch (currentChar) {
         // ignore whitespace, tabs and linefeeds
@@ -183,35 +265,21 @@ class Lexer {
           });
           break;
         case '"':
-          while (this.peek() !== '"' && !this.isEOF()) {
-            if (this.peek() === '\n') ++this.line;
-            this.advance();
-          }
+          this.eatString();
 
-          if (this.isEOF()) {
-            this.errorReporter.report(this.line, 'unterminated string literal');
-
-            return;
-          }
-
-          this.advance();
-
-          const stringLiteralValue = this.source.substring(
-            this.start,
-            this.current - 1
-          );
-
-          this.addToken({
-            type: TokenType.STRING,
-            line: this.line,
-            literalValue: stringLiteralValue,
-          });
           break;
         default:
-          this.errorReporter.report(
-            this.line,
-            `unexpected token ${currentChar}`
-          );
+          if (this.isDigit(currentChar)) {
+            this.eatNumber();
+          } else if (this.isAlphaNumeric(currentChar)) {
+            this.eatIdentifier();
+          } else {
+            this.errorReporter.report(
+              this.line,
+              `unexpected token ${currentChar}`
+            );
+          }
+
           break;
       }
     }

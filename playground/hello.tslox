@@ -5,4 +5,8 @@
   =
   +-*
   "hello world!"
+  123.345
+  myvar
+  _myvar123
+  for() {}
 }
