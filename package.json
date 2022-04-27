@@ -1,18 +1,18 @@
 {
-    "name": "tslox",
-    "version": "0.0.0-development",
-    "description": "Learning to build interpreters",
-    "main": "main.ts",
-    "repository": "git@github.com:ameerthehacker/tslox.git",
-    "author": "Ameer Jhan",
-    "license": "MIT",
-    "private": true,
-    "scripts": {
-        "start": "ts-node ./main.ts"
-    },
-    "dependencies": {
-        "@types/node": "^17.0.5",
-        "ts-node": "^10.4.0",
-        "typescript": "^4.5.4"
-    }
+  "name": "tslox",
+  "version": "0.0.0-development",
+  "description": "Learning to build interpreters",
+  "main": "tslox.ts",
+  "repository": "git@github.com:ameerthehacker/tslox.git",
+  "author": "Ameer Jhan",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "ts-node ./main.ts"
+  },
+  "dependencies": {
+    "@types/node": "^17.0.5",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.4"
+  }
 }

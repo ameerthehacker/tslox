@@ -1,17 +1,6 @@
-#! ./node_modules/.bin/ts-node
-import { promises as fs } from 'fs';
+import { ErrorReporter } from './error';
 
-interface ErrorReporter {
-  report(line: number, message: string): void;
-}
-
-class ConsoleErrorReporter implements ErrorReporter {
-  report(line: number, message: string): void {
-    console.error(`${line}: ${message}`);
-  }
-}
-
-enum TokenType {
+export enum TokenType {
   EOF = 'EOF',
   OPEN_PAREN = 'OPEN_PAREN',
   CLOSE_PAREN = 'CLOSE_PAREN',
@@ -37,13 +26,13 @@ const RESERVED_KEYWORDS: Record<string, TokenType> = {
   for: TokenType.FOR,
 };
 
-type Token = {
+export type Token = {
   type: TokenType;
   literalValue?: any;
   line: number;
 };
 
-class Lexer {
+export default class Lexer {
   private start = 0;
   private current = 0;
   private line = 1;
@@ -306,19 +295,3 @@ class Lexer {
     return this.tokens;
   }
 }
-
-async function main() {
-  if (process.argv.length === 2) {
-    console.error(`script file was not provided`);
-
-    return;
-  }
-
-  const scriptFilePath = process.argv[2];
-  const scriptFileContent = await fs.readFile(scriptFilePath, 'utf-8');
-  const lexer = new Lexer(scriptFileContent, new ConsoleErrorReporter());
-
-  console.log(lexer.lex());
-}
-
-main().then(() => {});
