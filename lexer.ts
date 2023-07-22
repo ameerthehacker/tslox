@@ -25,6 +25,7 @@ export enum TokenType {
   FOR = 'FOR',
   FALSE = 'FALSE',
   TRUE = 'TRUE',
+  SEMICOLON =  ';'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -188,8 +189,9 @@ export default class Lexer {
         case '\t':
         case '\r':
         case ' ':
+        case TokenType.SEMICOLON:
           break;
-        case '/':
+        case TokenType.SLASH:
           if (this.match('/')) {
             while (this.peek() !== '\n' && !this.isEOF()) this.advance();
           } else if (this.match('*')) {
@@ -218,31 +220,31 @@ export default class Lexer {
           ++this.row;
           this.col = 1;
           break;
-        case '{':
+        case TokenType.OPEN_BRACE:
           this.addToken({
             type: TokenType.OPEN_BRACE,
             location: this.curLocation
           });
           break;
-        case '}':
+        case TokenType.CLOSE_BRACE:
           this.addToken({
             type: TokenType.CLOSE_BRACE,
             location: this.curLocation
           });
           break;
-        case '(':
+        case TokenType.OPEN_PAREN:
           this.addToken({
             type: TokenType.OPEN_PAREN,
             location: this.curLocation
           });
           break;
-        case ')':
+        case TokenType.CLOSE_PAREN:
           this.addToken({
             type: TokenType.CLOSE_PAREN,
             location: this.curLocation
           });
           break;
-        case '<':
+        case TokenType.LT:
           if (this.match('=')) {
             this.addToken({
               type: TokenType.LTE,
@@ -255,7 +257,7 @@ export default class Lexer {
             });
           }
           break;
-        case '>':
+        case TokenType.GT:
           if (this.match('=')) {
             this.addToken({
               type: TokenType.GTE,
@@ -268,7 +270,7 @@ export default class Lexer {
             });
           }
           break;
-        case '=':
+        case TokenType.EQ:
           if (this.match('=')) {
             this.addToken({
               type: TokenType.EQ_EQ,
@@ -281,7 +283,7 @@ export default class Lexer {
             });
           }
           break;
-        case '!': 
+        case TokenType.BANG: 
           if (this.match('=')) {
             this.addToken({
               type: TokenType.BANG_EQ,
@@ -294,19 +296,19 @@ export default class Lexer {
             });
           }
           break;
-        case '+':
+        case TokenType.PLUS:
           this.addToken({
             type: TokenType.PLUS,
             location: this.curLocation
           });
           break;
-        case '-':
+        case TokenType.MINUS:
           this.addToken({
             type: TokenType.MINUS,
             location: this.curLocation
           });
           break;
-        case '*':
+        case TokenType.MUL:
           this.addToken({
             type: TokenType.MUL,
             location: this.curLocation
