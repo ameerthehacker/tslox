@@ -1,21 +1,24 @@
 import { ErrorReporter } from './error';
+import { Location } from './types';
 
 export enum TokenType {
   EOF = 'EOF',
-  OPEN_PAREN = 'OPEN_PAREN',
-  CLOSE_PAREN = 'CLOSE_PAREN',
-  SLASH = 'SLASH',
-  LT = 'LESS_THAN',
-  GT = 'GREATER_THAN',
-  LTE = 'LESS_THAN_OR_EQUAL',
-  GTE = 'GREATER_THAN_OR_EQUAL',
-  EQ = 'EQUAL',
-  EQ_EQ = 'EQUALITY',
-  PLUS = 'PLUS',
-  MINUS = 'MINUS',
-  MUL = 'MULTIPLY',
-  OPEN_BRACE = 'OPEN_BRACE',
-  CLOSE_BRACE = 'CLOSE_BRACE',
+  OPEN_PAREN = '(',
+  CLOSE_PAREN = ')',
+  SLASH = '/',
+  LT = '<',
+  GT = '>',
+  LTE = '<=',
+  GTE = '>=',
+  BANG = '!',
+  BANG_EQ = '!=',
+  EQ = '=',
+  EQ_EQ = '==',
+  PLUS = '+',
+  MINUS = '-',
+  MUL = '*',
+  OPEN_BRACE = '{',
+  CLOSE_BRACE = '}',
   STRING = 'STRING',
   NUMBER = 'NUMBER',
   IDENTIFIER = 'IDENTIFIER',
@@ -29,13 +32,14 @@ const RESERVED_KEYWORDS: Record<string, TokenType> = {
 export type Token = {
   type: TokenType;
   literalValue?: any;
-  line: number;
+  location: Location
 };
 
 export default class Lexer {
   private start = 0;
   private current = 0;
-  private line = 1;
+  private row = 1;
+  private col = 1;
   private tokens: Token[] = [];
 
   constructor(private source: string, private errorReporter: ErrorReporter) {}
@@ -51,7 +55,15 @@ export default class Lexer {
   }
 
   private advance() {
+    this.col++;
     return this.source.charAt(this.current++);
+  }
+
+  private get curLocation() {
+    return {
+      row: this.row,
+      col: this.col
+    }
   }
 
   private isEOF() {
@@ -75,13 +87,17 @@ export default class Lexer {
   }
 
   private eatString() {
+    const startCol = this.col - 1;
     while (this.peek() !== '"' && !this.isEOF()) {
-      if (this.peek() === '\n') ++this.line;
+      if (this.peek() === '\n') {
+        ++this.row;
+        this.col = 1;
+      };
       this.advance();
     }
 
     if (this.isEOF()) {
-      this.errorReporter.report(this.line, 'unterminated string literal');
+      this.errorReporter.report(this.curLocation, 'unterminated string literal');
 
       return;
     }
@@ -95,8 +111,11 @@ export default class Lexer {
 
     this.addToken({
       type: TokenType.STRING,
-      line: this.line,
-      literalValue: stringLiteralValue,
+      location: {
+        row: this.row,
+        col: startCol
+      },
+      literalValue: stringLiteralValue
     });
   }
 
@@ -109,6 +128,7 @@ export default class Lexer {
   }
 
   private eatIdentifier() {
+    const startCol = this.col - 1;
     while (this.isAlphaNumeric(this.peek()) && !this.isEOF()) this.advance();
 
     const identifierLiteralValue = this.source.substring(
@@ -121,11 +141,15 @@ export default class Lexer {
     this.addToken({
       type: tokenType,
       literalValue: identifierLiteralValue,
-      line: this.line,
+      location: {
+        row: this.row,
+        col: startCol
+      }
     });
   }
 
   private eatNumber() {
+    const startCol = this.col - 1;
     while (this.isDigit(this.peek()) && !this.isEOF()) this.advance();
 
     if (this.peek() === '.' && this.isDigit(this.peekNext())) {
@@ -139,13 +163,16 @@ export default class Lexer {
     this.addToken({
       type: TokenType.NUMBER,
       literalValue: numberLiteralValue,
-      line: this.line,
+      location: {
+        row: this.row,
+        col: startCol
+      }
     });
   }
 
   lex() {
     this.start = this.current = 0;
-    this.line = 1;
+    this.row = 1;
     this.tokens = [];
 
     while (!this.isEOF()) {
@@ -164,7 +191,7 @@ export default class Lexer {
           } else if (this.match('*')) {
             // comments can be multi lined
             while (!(this.peek() === '*' && this.peekNext() === '/')) {
-              if (this.peek() === '\n') ++this.line;
+              if (this.peek() === '\n') ++this.row;
 
               this.advance();
             }
@@ -175,7 +202,7 @@ export default class Lexer {
           } else {
             this.addToken({
               type: TokenType.SLASH,
-              line: this.line,
+              location: this.curLocation
             });
           }
 
@@ -184,42 +211,43 @@ export default class Lexer {
           while (this.peek() !== '\n' && !this.isEOF()) this.advance();
           break;
         case '\n':
-          ++this.line;
+          ++this.row;
+          this.col = 1;
           break;
         case '{':
           this.addToken({
             type: TokenType.OPEN_BRACE,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case '}':
           this.addToken({
             type: TokenType.CLOSE_BRACE,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case '(':
           this.addToken({
             type: TokenType.OPEN_PAREN,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case ')':
           this.addToken({
             type: TokenType.CLOSE_PAREN,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case '<':
           if (this.match('=')) {
             this.addToken({
               type: TokenType.LTE,
-              line: this.line,
+              location: this.curLocation
             });
           } else {
             this.addToken({
               type: TokenType.LT,
-              line: this.line,
+              location: this.curLocation
             });
           }
           break;
@@ -227,12 +255,12 @@ export default class Lexer {
           if (this.match('=')) {
             this.addToken({
               type: TokenType.GTE,
-              line: this.line,
+              location: this.curLocation
             });
           } else {
             this.addToken({
               type: TokenType.GT,
-              line: this.line,
+              location: this.curLocation
             });
           }
           break;
@@ -240,31 +268,44 @@ export default class Lexer {
           if (this.match('=')) {
             this.addToken({
               type: TokenType.EQ_EQ,
-              line: this.line,
+              location: this.curLocation
             });
           } else {
             this.addToken({
               type: TokenType.EQ,
-              line: this.line,
+              location: this.curLocation
+            });
+          }
+          break;
+        case '!': 
+          if (this.match('=')) {
+            this.addToken({
+              type: TokenType.BANG_EQ,
+              location: this.curLocation
+            });
+          } else {
+            this.addToken({
+              type: TokenType.BANG,
+              location: this.curLocation
             });
           }
           break;
         case '+':
           this.addToken({
             type: TokenType.PLUS,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case '-':
           this.addToken({
             type: TokenType.MINUS,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case '*':
           this.addToken({
             type: TokenType.MUL,
-            line: this.line,
+            location: this.curLocation
           });
           break;
         case '"':
@@ -278,7 +319,7 @@ export default class Lexer {
             this.eatIdentifier();
           } else {
             this.errorReporter.report(
-              this.line,
+              this.curLocation,
               `unexpected token ${currentChar}`
             );
           }
@@ -289,7 +330,7 @@ export default class Lexer {
 
     this.addToken({
       type: TokenType.EOF,
-      line: this.line,
+      location: this.curLocation
     });
 
     return this.tokens;

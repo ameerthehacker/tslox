@@ -1,56 +1,56 @@
 import { Token } from './lexer';
 
-interface ExprVisitor {
-  visitBinaryExpr: (expr: BinaryExpr) => any;
-  visitUnaryExpr: (expr: UnaryExpr) => any;
-  visitGroupingExpr: (expr: GroupingExpr) => any;
-  visitLiteral: (expr: LiteralExpr) => any;
+interface ExpressionVisitor {
+  visitBinaryExpr: (expr: BinaryExpression) => any;
+  visitUnaryExpr: (expr: UnaryExpression) => any;
+  visitGroupingExpr: (expr: GroupingExpression) => any;
+  visitLiteral: (expr: Literal) => any;
 }
 
-export abstract class Expr {
-  abstract accept(visitor: ExprVisitor): void;
+export abstract class Expression {
+  abstract accept(visitor: ExpressionVisitor): void;
 }
 
-export class BinaryExpr extends Expr {
+export class BinaryExpression extends Expression {
   constructor(
-    public leftExpr: Expr,
+    public leftExpr: Expression,
     public operator: Token,
-    public rightExpr: Expr
+    public rightExpr: Expression
   ) {
     super();
   }
 
-  accept(visitor: ExprVisitor): void {
+  accept(visitor: ExpressionVisitor): void {
     return visitor.visitBinaryExpr(this);
   }
 }
 
-export class UnaryExpr extends Expr {
-  constructor(public operator: Token, public expr: Expr) {
+export class UnaryExpression extends Expression {
+  constructor(public operator: Token, public expr: Expression) {
     super();
   }
 
-  accept(visitor: ExprVisitor): void {
+  accept(visitor: ExpressionVisitor): void {
     return visitor.visitUnaryExpr(this);
   }
 }
 
-export class GroupingExpr extends Expr {
-  constructor(expr: Expr) {
+export class GroupingExpression extends Expression {
+  constructor(public expr: Expression) {
     super();
   }
 
-  accept(visitor: ExprVisitor): void {
+  accept(visitor: ExpressionVisitor): void {
     return visitor.visitGroupingExpr(this);
   }
 }
 
-export class LiteralExpr extends Expr {
+export class Literal extends Expression {
   constructor(public value: Token) {
     super();
   }
 
-  accept(visitor: ExprVisitor): void {
+  accept(visitor: ExpressionVisitor): void {
     return visitor.visitLiteral(this);
   }
 }

@@ -1,8 +1,8 @@
 #! ./node_modules/.bin/ts-node
 import { promises as fs } from 'fs';
 import ConsoleErrorReporter from './error';
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr } from './expr';
-import Lexer, { TokenType } from './lexer';
+import Lexer from './lexer';
+import { Parser } from './parser';
 
 async function main() {
   if (process.argv.length === 2) {
@@ -13,9 +13,13 @@ async function main() {
 
   const scriptFilePath = process.argv[2];
   const scriptFileContent = await fs.readFile(scriptFilePath, 'utf-8');
-  const lexer = new Lexer(scriptFileContent, new ConsoleErrorReporter());
+  const errorReporter = new ConsoleErrorReporter()
+  const lexer = new Lexer(scriptFileContent, errorReporter);
+  const tokens = lexer.lex();
+  const parser = new Parser(tokens, errorReporter);
 
-  console.log(lexer.lex());
+  console.log(tokens);
+  // console.log(parser.parse());
 }
 
 main().then(() => {});

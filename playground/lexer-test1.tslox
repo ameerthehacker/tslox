@@ -15,4 +15,5 @@
   myvar
   _myvar123
   for() {}
+  !=
 }
