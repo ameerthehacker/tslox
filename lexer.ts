@@ -23,10 +23,14 @@ export enum TokenType {
   NUMBER = 'NUMBER',
   IDENTIFIER = 'IDENTIFIER',
   FOR = 'FOR',
+  FALSE = 'FALSE',
+  TRUE = 'TRUE',
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
   for: TokenType.FOR,
+  TRUE: TokenType.TRUE,
+  FALSE: TokenType.FALSE,
 };
 
 export type Token = {

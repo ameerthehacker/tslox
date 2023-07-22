@@ -114,13 +114,7 @@ export class Parser {
   }
 
   private primary(): Expression {
-    if (this.match(TokenType.NUMBER)) {
-      const token = this.previous();
-
-      return new Literal(token.literalValue);
-    }
-
-    if (this.match(TokenType.STRING)) {
+    if (this.match(TokenType.NUMBER, TokenType.STRING, TokenType.TRUE, TokenType.FALSE)) {
       const token = this.previous();
 
       return new Literal(token.literalValue);

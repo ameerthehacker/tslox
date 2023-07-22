@@ -19,7 +19,7 @@ async function main() {
   const parser = new Parser(tokens, errorReporter);
 
   console.log(tokens);
-  // console.log(parser.parse());
+  console.log(parser.parse());
 }
 
 main().then(() => {});
