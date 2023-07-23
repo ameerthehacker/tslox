@@ -104,12 +104,10 @@ export class Parser {
   }
 
   private consume(tokenType: TokenType, errorMessage: string) {
-    while (!this.isEof() && this.curToken.type !== tokenType) {
+    if (!this.isEof() && this.curToken.type === tokenType) {
       this.advance();
-    }
-
-    if (this.isEof()) {
-      this.errorReporter.report(this.curToken.location, errorMessage);
+    } else {
+      throw new Error(errorMessage);
     }
   }
 
@@ -117,7 +115,7 @@ export class Parser {
     if (this.match(TokenType.NUMBER, TokenType.STRING, TokenType.TRUE, TokenType.FALSE)) {
       const token = this.previous();
 
-      return new Literal(token.literalValue);
+      return new Literal(token);
     }
 
     if (this.match(TokenType.OPEN_PAREN)) {
@@ -128,15 +126,22 @@ export class Parser {
       return new GroupingExpression(expr);
     }
 
-    this.errorReporter.report(this.curToken.location, 'Invalid syntax');
-    process.exit(1);
+    throw new Error('Invalid syntax');
   }
 
   private expression(): Expression {
     return this.equality();
   }
 
-  parse(): Expression {
-    return this.expression();
+  parse(): Expression | null {
+    try {
+      return this.expression();
+    } catch(err) {
+      let _err = err as Error;
+
+      this.errorReporter.report(this.curToken.location, _err.message);
+
+      return null;
+    }
   }
 }

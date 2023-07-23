@@ -19,24 +19,26 @@ export enum TokenType {
   MUL = '*',
   OPEN_BRACE = '{',
   CLOSE_BRACE = '}',
-  STRING = 'STRING',
-  NUMBER = 'NUMBER',
-  IDENTIFIER = 'IDENTIFIER',
-  FOR = 'FOR',
+  STRING = 'string',
+  NUMBER = 'number',
+  IDENTIFIER = 'identifier',
+  FOR = 'for',
   FALSE = 'FALSE',
   TRUE = 'TRUE',
-  SEMICOLON =  ';'
+  SEMICOLON =  ';',
+  NONE = 'none'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
-  for: TokenType.FOR,
-  TRUE: TokenType.TRUE,
-  FALSE: TokenType.FALSE,
+  [TokenType.FOR]: TokenType.FOR,
+  [TokenType.TRUE]: TokenType.TRUE,
+  [TokenType.FALSE]: TokenType.FALSE,
+  [TokenType.NONE]: TokenType.NONE
 };
 
 export type Token = {
   type: TokenType;
-  literalValue?: any;
+  literalValue?: string | number;
   location: Location
 };
 
@@ -167,7 +169,7 @@ export default class Lexer {
 
     this.addToken({
       type: TokenType.NUMBER,
-      literalValue: numberLiteralValue,
+      literalValue: parseInt(numberLiteralValue),
       location: {
         row: this.row,
         col: startCol

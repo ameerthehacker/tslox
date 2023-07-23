@@ -1,6 +1,6 @@
 import { Token } from './lexer';
 
-interface ExpressionVisitor {
+export interface ExpressionVisitor {
   visitBinaryExpr: (expr: BinaryExpression) => any;
   visitUnaryExpr: (expr: UnaryExpression) => any;
   visitGroupingExpr: (expr: GroupingExpression) => any;
@@ -8,7 +8,7 @@ interface ExpressionVisitor {
 }
 
 export abstract class Expression {
-  abstract accept(visitor: ExpressionVisitor): void;
+  abstract accept(visitor: ExpressionVisitor): any;
 }
 
 export class BinaryExpression extends Expression {
