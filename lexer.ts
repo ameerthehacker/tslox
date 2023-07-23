@@ -26,17 +26,19 @@ export enum TokenType {
   FOR = 'for',
   FALSE = 'FALSE',
   TRUE = 'TRUE',
-  SEMICOLON =  ';',
+  SEMICOLON = ';',
   NONE = 'none',
   Q_MARK = '?',
-  COLON = ':'
+  COLON = ':',
+  PRINT = 'print'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.FOR]: TokenType.FOR,
   [TokenType.TRUE]: TokenType.TRUE,
   [TokenType.FALSE]: TokenType.FALSE,
-  [TokenType.NONE]: TokenType.NONE
+  [TokenType.NONE]: TokenType.NONE,
+  [TokenType.PRINT]: TokenType.PRINT
 };
 
 export type Token = {
@@ -194,7 +196,12 @@ export default class Lexer {
         case '\t':
         case '\r':
         case ' ':
+        break;
         case TokenType.SEMICOLON:
+          this.addToken({
+            type: TokenType.SEMICOLON,
+            location: this.curLocation
+          })
           break;
         case TokenType.SLASH:
           if (this.match('/')) {

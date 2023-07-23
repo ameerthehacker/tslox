@@ -1,6 +1,7 @@
 import { ErrorReporter } from "./error";
 import { BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
+import { ExpressionStatement, PrintStatement, Statement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -152,20 +153,58 @@ export class Parser {
       return new GroupingExpression(expr);
     }
 
-    throw new Error('Invalid syntax');
+    throw new Error(`Unexpected token ${this.curToken.type}`);
   }
 
   private expression(): Expression {
     return this.ternary();
   }
 
-  parse(): Expression | null {
+  private consumeSemicolon() {
+    this.consume(TokenType.SEMICOLON, 'Expected ;');
+  }
+
+  private printStatement() {
+    const expr = this.expression();
+
+    this.consumeSemicolon();
+
+    return new PrintStatement(expr);
+  }
+
+  private expressionStatement() {
+    const expr = this.expression();
+
+    this.consumeSemicolon();
+
+    return new ExpressionStatement(expr);
+  }
+
+  private statement(): Statement {
+    if (this.match(TokenType.PRINT)) {
+      return this.printStatement();
+    } else {
+      return this.expressionStatement();
+    }
+  }
+
+  parse(): Statement[] | null {
+    let statements: Statement[] = [];
+
     try {
-      return this.expression();
+      while (!this.isEof()) {
+        const statement = this.statement();
+
+        if (statement) {
+          statements.push(statement);
+        }
+      }
+
+      return statements;
     } catch(err) {
       let _err = err as Error;
 
-      this.errorReporter.report(this.curToken.location, _err.message);
+      this.errorReporter.report(this.curToken.location, `Syntax Error: ${_err.message}`);
 
       return null;
     }

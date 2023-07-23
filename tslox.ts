@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import ConsoleErrorReporter from './error';
 import Lexer from './lexer';
 import { Parser } from './parser';
-import { Interpreter } from './interpreter';
+import { ExpressionInterpreter, StatementInterpreter } from './interpreter';
 
 async function main() {
   if (process.argv.length === 2) {
@@ -15,15 +15,17 @@ async function main() {
   const scriptFilePath = process.argv[2];
   const scriptFileContent = await fs.readFile(scriptFilePath, 'utf-8');
   const errorReporter = new ConsoleErrorReporter();
-  const interpreter = new Interpreter();
+  const expressionInterpreter = new ExpressionInterpreter();
+  const statementInterpreter = new StatementInterpreter(expressionInterpreter);
   const lexer = new Lexer(scriptFileContent, errorReporter);
   const tokens = lexer.lex();
   const parser = new Parser(tokens, errorReporter);
-  const expression = parser.parse();
+  const statements = parser.parse();
 
-
-  if (expression) {
-    console.log(interpreter.eval(expression));
+  if (statements) {
+    for (const statement of statements) {
+      statement.accept(statementInterpreter);
+    }
   }
 }
 

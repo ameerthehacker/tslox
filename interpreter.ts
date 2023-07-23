@@ -1,7 +1,8 @@
 import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
+import { ExpressionStatement, PrintStatement, Statement, StatementVisitor } from "./stmt";
 
-export class Interpreter implements ExpressionVisitor {
+export class ExpressionInterpreter implements ExpressionVisitor {
   public eval(expr: Expression): any {
     return expr.accept(this);
   }
@@ -94,5 +95,19 @@ export class Interpreter implements ExpressionVisitor {
         return leftValue !== rightValue;
       }
     }
+  }
+}
+
+export class StatementInterpreter implements StatementVisitor {
+  constructor(private expressionInterpreter: ExpressionInterpreter) {}
+
+  visitExpressionStatement(statement: ExpressionStatement) {
+    return this.expressionInterpreter.eval(statement.expression);  
+  }
+
+  visitPrintStatement(statement: PrintStatement) {
+    const value = this.expressionInterpreter.eval(statement.expression);
+
+    console.log(value);
   }
 }
