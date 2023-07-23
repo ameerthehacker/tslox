@@ -50,6 +50,9 @@ export class Interpreter implements ExpressionVisitor {
     const rightValue = this.eval(expr.rightExpr);
 
     switch(expr.operator.type) {
+      case TokenType.CARET: {
+        return Math.pow(this.assertNumber(leftValue), this.assertNumber(rightValue));
+      }
       case TokenType.PLUS: {
         return leftValue + rightValue;
       }
@@ -61,6 +64,24 @@ export class Interpreter implements ExpressionVisitor {
       }
       case TokenType.SLASH: {
         return this.assertNumber(leftValue) / this.assertNumber(rightValue);
+      }
+      case TokenType.GT: {
+        return this.assertNumber(leftValue) > this.assertNumber(rightValue);
+      }
+      case TokenType.GTE: {
+        return this.assertNumber(leftValue) >= this.assertNumber(rightValue);
+      }
+      case TokenType.LT: {
+        return this.assertNumber(leftValue) < this.assertNumber(rightValue);
+      }
+      case TokenType.LTE: {
+        return this.assertNumber(leftValue) <= this.assertNumber(rightValue);
+      }
+      case TokenType.EQ_EQ: {
+        return leftValue === rightValue;
+      }
+      case TokenType.BANG_EQ: {
+        return leftValue !== rightValue;
       }
     }
   }

@@ -35,5 +35,5 @@ class ExpressionPrinter implements ExpressionVisitor {
 export function printExpression(expr: Expression) {
   const expressionPrinter = new ExpressionPrinter();
 
-  return expr.accept(expressionPrinter);
+  console.log(expr.accept(expressionPrinter));
 }

@@ -77,9 +77,21 @@ export class Parser {
   }
 
   private factor(): Expression {
-    let expr = this.unary();
+    let expr = this.power();
 
     while (this.match(TokenType.SLASH, TokenType.MUL)) {
+      const operator = this.previous();
+      const rightExpr = this.power();
+      expr = new BinaryExpression(expr, operator, rightExpr);
+    }
+
+    return expr;
+  }
+
+  private power(): Expression {
+    let expr = this.unary();
+
+    while (this.match(TokenType.CARET)) {
       const operator = this.previous();
       const rightExpr = this.unary();
       expr = new BinaryExpression(expr, operator, rightExpr);
@@ -112,7 +124,7 @@ export class Parser {
   }
 
   private primary(): Expression {
-    if (this.match(TokenType.NUMBER, TokenType.STRING, TokenType.TRUE, TokenType.FALSE)) {
+    if (this.match(TokenType.NUMBER, TokenType.STRING, TokenType.TRUE, TokenType.FALSE, TokenType.NONE)) {
       const token = this.previous();
 
       return new Literal(token);

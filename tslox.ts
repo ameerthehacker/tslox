@@ -21,6 +21,7 @@ async function main() {
   const parser = new Parser(tokens, errorReporter);
   const expression = parser.parse();
 
+
   if (expression) {
     console.log(interpreter.eval(expression));
   }

@@ -16,6 +16,7 @@ export enum TokenType {
   EQ_EQ = '==',
   PLUS = '+',
   MINUS = '-',
+  CARET = '^',
   MUL = '*',
   OPEN_BRACE = '{',
   CLOSE_BRACE = '}',
@@ -284,6 +285,12 @@ export default class Lexer {
               location: this.curLocation
             });
           }
+          break;
+        case TokenType.CARET:
+          this.addToken({
+            type: TokenType.CARET,
+            location: this.curLocation
+          });
           break;
         case TokenType.BANG: 
           if (this.match('=')) {
