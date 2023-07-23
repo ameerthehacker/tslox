@@ -1,5 +1,5 @@
 import { ErrorReporter } from "./error";
-import { BinaryExpression, Expression, GroupingExpression, Literal, UnaryExpression } from "./expr";
+import { BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 
 export class Parser {
@@ -38,6 +38,20 @@ export class Parser {
 
   private previous() {
     return this.tokens[this.current - 1];
+  }
+
+  private ternary(): Expression {
+    let expr = this.equality();
+
+    while (this.match(TokenType.Q_MARK)) {
+      const truthyExpression = this.ternary();
+      this.consume(TokenType.COLON, 'Expected :');
+      const falsyExpression = this.ternary();
+
+      expr = new TernaryExpression(expr, truthyExpression, falsyExpression);
+    }
+
+    return expr;
   }
 
   private equality(): Expression {
@@ -142,7 +156,7 @@ export class Parser {
   }
 
   private expression(): Expression {
-    return this.equality();
+    return this.ternary();
   }
 
   parse(): Expression | null {

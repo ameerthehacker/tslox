@@ -1,4 +1,4 @@
-import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, UnaryExpression } from "./expr";
+import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 
 class ExpressionPrinter implements ExpressionVisitor {
   private parenthesis(operator: string, ...expressions: Expression[]) {
@@ -29,6 +29,10 @@ class ExpressionPrinter implements ExpressionVisitor {
     const value = expr.value.literalValue || '';
 
     return this.parenthesis(value.toString());
+  }
+
+  visitTernaryExpr(expr: TernaryExpression) {
+    return this.parenthesis('ternary', expr.conditionalExpression, expr.truthyExpression, expr.falsyExpression);
   }
 }
 

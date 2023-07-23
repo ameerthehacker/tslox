@@ -27,7 +27,9 @@ export enum TokenType {
   FALSE = 'FALSE',
   TRUE = 'TRUE',
   SEMICOLON =  ';',
-  NONE = 'none'
+  NONE = 'none',
+  Q_MARK = '?',
+  COLON = ':'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -304,6 +306,18 @@ export default class Lexer {
               location: this.curLocation
             });
           }
+          break;
+        case TokenType.Q_MARK:
+          this.addToken({
+            type: TokenType.Q_MARK,
+            location: this.curLocation
+          });
+          break;
+        case TokenType.COLON:
+          this.addToken({
+            type: TokenType.COLON,
+            location: this.curLocation
+          });
           break;
         case TokenType.PLUS:
           this.addToken({

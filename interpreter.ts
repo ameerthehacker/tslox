@@ -1,4 +1,4 @@
-import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, UnaryExpression } from "./expr";
+import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
 
 export class Interpreter implements ExpressionVisitor {
@@ -43,6 +43,16 @@ export class Interpreter implements ExpressionVisitor {
 
   visitGroupingExpr(expr: GroupingExpression) {
     return this.eval(expr.expr);
+  }
+
+  visitTernaryExpr(expr: TernaryExpression) {
+    let conditionalValue = this.eval(expr.conditionalExpression);
+
+    if (conditionalValue) {
+      return this.eval(expr.truthyExpression);
+    } else {
+      return this.eval(expr.falsyExpression);
+    }
   }
 
   visitBinaryExpr(expr: BinaryExpression) {
