@@ -1,6 +1,24 @@
 import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
-import { ExpressionStatement, PrintStatement, Statement, StatementVisitor } from "./stmt";
+import { ExpressionStatement, PrintStatement, StatementVisitor, VariableDeclarationStatement } from "./stmt";
+
+class Environment {
+  constructor(private map: Map<string, any> = new Map()) {}
+
+  define(variableName: string, value: any) {
+    this.map.set(variableName, value);
+  }
+
+  get(variableName: string) {
+    if (this.map.has(variableName)) {
+      return this.map.get(variableName);
+    } else {
+      throw new Error(`Undefined variable ${variableName}`);
+    }
+  }
+}
+
+const globalEnvironment = new Environment();
 
 export class ExpressionInterpreter implements ExpressionVisitor {
   public eval(expr: Expression): any {
@@ -19,6 +37,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     if (expr.value.type === TokenType.NONE) return 0;
     if (expr.value.type === TokenType.TRUE) return 1;
     if (expr.value.type === TokenType.FALSE) return 0;
+    if (expr.value.type === TokenType.IDENTIFIER) return globalEnvironment.get(expr.value.literalValue as string);
     else return expr.value.literalValue || 0;
   }
 
@@ -109,5 +128,20 @@ export class StatementInterpreter implements StatementVisitor {
     const value = this.expressionInterpreter.eval(statement.expression);
 
     console.log(value);
+  }
+
+  visitVariableDeclarationStatement(statement: VariableDeclarationStatement) {
+    const variableDeclarations = statement.declarations;
+
+    for (const variableDeclaration of variableDeclarations) {
+      const initializer = variableDeclaration.initializer;
+      let initializerValue = 0;
+
+      if (initializer) {
+        initializerValue = this.expressionInterpreter.eval(initializer);
+      }
+
+      globalEnvironment.define(variableDeclaration.identifier, initializerValue);
+    }
   }
 }

@@ -28,9 +28,11 @@ export enum TokenType {
   TRUE = 'TRUE',
   SEMICOLON = ';',
   NONE = 'none',
-  Q_MARK = '?',
+  QUESTION_MARK = '?',
   COLON = ':',
-  PRINT = 'print'
+  PRINT = 'print',
+  LET = 'let',
+  COMMA = ','
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -38,7 +40,8 @@ const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.TRUE]: TokenType.TRUE,
   [TokenType.FALSE]: TokenType.FALSE,
   [TokenType.NONE]: TokenType.NONE,
-  [TokenType.PRINT]: TokenType.PRINT
+  [TokenType.PRINT]: TokenType.PRINT,
+  [TokenType.LET]: TokenType.LET
 };
 
 export type Token = {
@@ -314,15 +317,21 @@ export default class Lexer {
             });
           }
           break;
-        case TokenType.Q_MARK:
+        case TokenType.QUESTION_MARK:
           this.addToken({
-            type: TokenType.Q_MARK,
+            type: TokenType.QUESTION_MARK,
             location: this.curLocation
           });
           break;
         case TokenType.COLON:
           this.addToken({
             type: TokenType.COLON,
+            location: this.curLocation
+          });
+          break;
+        case TokenType.COMMA:
+          this.addToken({
+            type: TokenType.COMMA,
             location: this.curLocation
           });
           break;

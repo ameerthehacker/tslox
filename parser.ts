@@ -1,7 +1,7 @@
 import { ErrorReporter } from "./error";
 import { BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { ExpressionStatement, PrintStatement, Statement } from "./stmt";
+import { ExpressionStatement, PrintStatement, Statement, VariableDeclaration, VariableDeclarationStatement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -23,7 +23,7 @@ export class Parser {
   }
 
   private advance() {
-    this.current++;
+    return this.tokens[this.current++]
   }
 
   private match(...tokenTypes: TokenType[]) {
@@ -44,7 +44,7 @@ export class Parser {
   private ternary(): Expression {
     let expr = this.equality();
 
-    while (this.match(TokenType.Q_MARK)) {
+    while (this.match(TokenType.QUESTION_MARK)) {
       const truthyExpression = this.ternary();
       this.consume(TokenType.COLON, 'Expected :');
       const falsyExpression = this.ternary();
@@ -132,14 +132,23 @@ export class Parser {
 
   private consume(tokenType: TokenType, errorMessage: string) {
     if (!this.isEof() && this.curToken.type === tokenType) {
-      this.advance();
+      return this.advance();
     } else {
       throw new Error(errorMessage);
     }
   }
 
   private primary(): Expression {
-    if (this.match(TokenType.NUMBER, TokenType.STRING, TokenType.TRUE, TokenType.FALSE, TokenType.NONE)) {
+    if (
+      this.match(
+        TokenType.NUMBER,
+        TokenType.STRING,
+        TokenType.TRUE,
+        TokenType.FALSE,
+        TokenType.NONE,
+        TokenType.IDENTIFIER
+      )
+    ) {
       const token = this.previous();
 
       return new Literal(token);
@@ -180,8 +189,31 @@ export class Parser {
     return new ExpressionStatement(expr);
   }
 
+  private variableDeclarationStatement() {
+    const variableDeclarations: VariableDeclaration[] = [];
+    
+    do {
+      const identifier = this.consume(TokenType.IDENTIFIER, 'Expected variable name');
+
+      let initializer: Expression | null = null; 
+
+      if (this.match(TokenType.EQ)) {
+        initializer = this.expression();
+      }
+
+      variableDeclarations.push({ identifier: identifier.literalValue as string, initializer });
+    } while (this.match(TokenType.COMMA));
+
+    this.consumeSemicolon();
+
+    return new VariableDeclarationStatement(variableDeclarations);
+  }
+
   private statement(): Statement {
-    if (this.match(TokenType.PRINT)) {
+    if (this.match(TokenType.LET)) {
+      return this.variableDeclarationStatement();
+    }
+    else if (this.match(TokenType.PRINT)) {
       return this.printStatement();
     } else {
       return this.expressionStatement();

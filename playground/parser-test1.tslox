@@ -1,2 +1,3 @@
-print "hello world!";
+let first_name = "Ameer", last_name = "Jhan";
+print "Hello " + first_name + " " + last_name + "!";
 print 2 + 3 - 1;

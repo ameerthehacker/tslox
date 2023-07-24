@@ -12,16 +12,6 @@ export abstract class Expression {
   abstract accept(visitor: ExpressionVisitor): any;
 }
 
-// NOOP expression
-export class SemiColonExpression extends Expression {
-  constructor() {
-    super();
-  }
-
-  accept(visitor: ExpressionVisitor) {}
-}
-
-
 export class TernaryExpression extends Expression {
   constructor(public conditionalExpression: Expression, public truthyExpression: Expression, public falsyExpression: Expression) {
     super();
