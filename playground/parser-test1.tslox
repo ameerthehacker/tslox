@@ -1,3 +1,4 @@
 let first_name = "Ameer", last_name = "Jhan";
-print "Hello " + first_name + " " + last_name + "!";
-print 2 + 3 - 1;
+let message = "Hello " + first_name + " " + last_name + "!";
+print message;
+print unknown;

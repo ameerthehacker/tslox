@@ -13,7 +13,7 @@ class Environment {
     if (this.map.has(variableName)) {
       return this.map.get(variableName);
     } else {
-      throw new Error(`Undefined variable ${variableName}`);
+      throw new Error(`Undefined variable '${variableName}'`);
     }
   }
 }
