@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { ExpressionStatement, PrintStatement, Statement, VariableDeclaration, VariableDeclarationStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, PrintStatement, Statement, VariableDeclaration, VariableDeclarationStatement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -10,12 +10,12 @@ export class Parser {
     this.current = 0;
   }
 
-  private isEof() {
+  private isEOF() {
     return this.tokens[this.current].type === TokenType.EOF;
   }
 
   private peek(): Token | null {
-    if (!this.isEof()) {
+    if (!this.isEOF()) {
       return this.tokens[this.current];
     }
 
@@ -71,10 +71,6 @@ export class Parser {
     }
 
     return expr;
-  }
-
-  private getStartLocation(expr: Expression) {
-
   }
 
   private equality(): Expression {
@@ -158,7 +154,7 @@ export class Parser {
   }
 
   private consume(tokenType: TokenType, error: TSLoxError) {
-    if (!this.isEof() && this.curToken.type === tokenType) {
+    if (!this.isEOF() && this.curToken.type === tokenType) {
       return this.advance();
     } else {
       throw error;
@@ -230,7 +226,7 @@ export class Parser {
         initializer = this.expression();
       }
 
-      variableDeclarations.push({ identifier: identifier.literalValue as string, initializer });
+      variableDeclarations.push({ identifier: identifier, initializer });
     } while (this.match(TokenType.COMMA));
 
     this.consumeSemicolon();
@@ -238,8 +234,23 @@ export class Parser {
     return new VariableDeclarationStatement(variableDeclarations);
   }
 
+  private blockStatement(): BlockStatement {
+    const statements: Statement[] = [];
+
+    while (!this.isEOF() && this.peek()?.type !== TokenType.CLOSE_BRACE) {
+      statements.push(this.statement());
+    }
+
+    this.consume(TokenType.CLOSE_BRACE, new TSLoxError('Syntax', this.curToken.location, 'expected }'));
+
+    return new BlockStatement(statements);
+  }
+
   private statement(): Statement {
-    if (this.match(TokenType.LET)) {
+    if (this.match(TokenType.OPEN_BRACE)) {
+      return this.blockStatement();
+    }
+    else if (this.match(TokenType.LET)) {
       return this.variableDeclarationStatement();
     }
     else if (this.match(TokenType.PRINT)) {
@@ -253,7 +264,7 @@ export class Parser {
     let statements: Statement[] = [];
 
     try {
-      while (!this.isEof()) {
+      while (!this.isEOF()) {
         const statement = this.statement();
 
         if (statement) {

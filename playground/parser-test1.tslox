@@ -1,6 +1,11 @@
 let ternary = "hello world!";
 let another_variable;
-print ternary;
-another_variable = ternary = "hello workd edited";
-print ternary;
-print another_variable;
+{
+  let scoped_variable = "hello I'm scoped";
+  print ternary;
+  another_variable = ternary = "hello workd edited";
+  print ternary;
+  print another_variable;
+}
+
+print scoped_variable;

@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
-import { ExpressionStatement, PrintStatement, StatementVisitor, VariableDeclarationStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, PrintStatement, StatementVisitor, VariableDeclarationStatement } from "./stmt";
 import { Location } from "./types";
 
 const Errors = {
@@ -9,22 +9,40 @@ const Errors = {
 } 
 
 class Environment {
-  constructor(private map: Map<string, any> = new Map()) {}
+  private map: Map<string, any> = new Map()
+
+  constructor(private _outerScope?: Environment) {}
 
   define(variableName: string, value: any) {
     this.map.set(variableName, value);
   }
 
-  get(variableName: string) {
-    return this.map.get(variableName);
+  assign(variableName: string, value: any) {
+    if (this.isDefinedInScope(variableName)) {
+      this.map.set(variableName, value);
+    } else {
+      this._outerScope?.assign(variableName, value);
+    }
   }
 
-  isDefined(variableName: string) {
+  get(variableName: string): any {
+    return this.map.get(variableName) || this._outerScope?.get(variableName);
+  }
+
+  isDefined(variableName: string): boolean {
+    return this.map.has(variableName) || Boolean(this._outerScope?.isDefined(variableName));
+  }
+
+  isDefinedInScope(variableName: string): boolean {
     return this.map.has(variableName);
+  }
+
+  public get outerScope() {
+    return this._outerScope;
   }
 }
 
-const globalEnvironment = new Environment();
+let environment = new Environment();
 
 export class ExpressionInterpreter implements ExpressionVisitor {
   constructor(private errorReporter: ErrorReporter) {}
@@ -58,8 +76,8 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     if (expr.value.type === TokenType.IDENTIFIER) {
       const variableName = expr.value.literalValue as string;
 
-      if (globalEnvironment.isDefined(variableName)) {
-        return globalEnvironment.get(expr.value.literalValue as string);
+      if (environment.isDefined(variableName)) {
+        return environment.get(expr.value.literalValue as string);
       } else {
         throw Errors.undefinedVariable(variableName, expr.value.location);
       }
@@ -151,8 +169,8 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     const variableName = expr.lValue.literalValue as string;
     const value = this.interpret(expr.rValue);
 
-    if (globalEnvironment.isDefined(variableName)) {
-      globalEnvironment.define(variableName, value);
+    if (environment.isDefined(variableName)) {
+      environment.assign(variableName, value);
     } else {
       throw Errors.undefinedVariable(variableName, expr.lValue.location);
     }
@@ -178,6 +196,7 @@ export class StatementInterpreter implements StatementVisitor {
     const variableDeclarations = statement.declarations;
 
     for (const variableDeclaration of variableDeclarations) {
+      const variableName = variableDeclaration.identifier.literalValue as string;
       const initializer = variableDeclaration.initializer;
       let initializerValue = 0;
 
@@ -185,7 +204,21 @@ export class StatementInterpreter implements StatementVisitor {
         initializerValue = this.expressionInterpreter.interpret(initializer);
       }
 
-      globalEnvironment.define(variableDeclaration.identifier, initializerValue);
+      if (environment.isDefinedInScope(variableName)) {
+        throw new TSLoxError('Runtime', variableDeclaration.identifier.location, `identifier '${variableName}' is already declared in current scope`);
+      }
+ 
+      environment.define(variableName, initializerValue);
+    }
+  }
+
+  visitBlockStatement(statement: BlockStatement) {
+    environment = new Environment(environment);
+
+    statement.statements.forEach(statement => statement.accept(this));
+
+    if (environment.outerScope) {
+      environment = environment.outerScope;
     }
   }
 }

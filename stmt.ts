@@ -1,15 +1,17 @@
 import { Expression } from "./expr";
+import { Token } from "./lexer";
 
-export type VariableDeclaration = {identifier: string, initializer: Expression | null};
+export type VariableDeclaration = {identifier: Token, initializer: Expression | null};
 
 export interface StatementVisitor {
   visitExpressionStatement(statement: ExpressionStatement): any;
   visitPrintStatement(statement: PrintStatement): any;
   visitVariableDeclarationStatement(statement: VariableDeclarationStatement): any;
+  visitBlockStatement(statement: Statement): any
 }
 
 export abstract class Statement {
-  accept(visitor: StatementVisitor): any {}
+  abstract accept(visitor: StatementVisitor): any;
 }
 
 export class ExpressionStatement extends Statement {
@@ -29,6 +31,16 @@ export class VariableDeclarationStatement extends Statement {
 
   accept(visitor: StatementVisitor) {
     return visitor.visitVariableDeclarationStatement(this);
+  }
+}
+
+export class BlockStatement extends Statement {
+  constructor(public statements: Statement[]) {
+    super();
+  }
+
+  accept(visitor: StatementVisitor) {
+    return visitor.visitBlockStatement(this);
   }
 }
 
