@@ -1,4 +1,4 @@
-import { ErrorReporter } from './error';
+import { ErrorReporter, TSLoxError } from './error';
 import { Location } from './types';
 
 export enum TokenType {
@@ -112,7 +112,7 @@ export default class Lexer {
     }
 
     if (this.isEOF()) {
-      this.errorReporter.report(this.curLocation, 'unterminated string literal');
+      this.errorReporter.report(new TSLoxError('Syntax', this.curLocation, 'unterminated string literal'));
 
       return;
     }
@@ -364,8 +364,11 @@ export default class Lexer {
             this.eatIdentifier();
           } else {
             this.errorReporter.report(
-              this.curLocation,
-              `unexpected token ${currentChar}`
+              new TSLoxError(
+                'Syntax',
+                this.curLocation,
+                `unexpected token ${currentChar}`
+              )
             );
           }
 

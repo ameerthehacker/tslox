@@ -1,9 +1,11 @@
+import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
 import { ExpressionStatement, PrintStatement, StatementVisitor, VariableDeclarationStatement } from "./stmt";
+import { Location } from "./types";
 
 const Errors = {
-  undefinedVariable: (variableName: string) => new Error(`Undefined variable '${variableName}'`)
+  undefinedVariable: (variableName: string, location: Location) => new TSLoxError('Runtime', location, `undefined variable '${variableName}'`)
 } 
 
 class Environment {
@@ -14,11 +16,7 @@ class Environment {
   }
 
   get(variableName: string) {
-    if (this.map.has(variableName)) {
-      return this.map.get(variableName);
-    } else {
-      throw Errors.undefinedVariable(variableName);
-    }
+    return this.map.get(variableName);
   }
 
   isDefined(variableName: string) {
@@ -29,8 +27,16 @@ class Environment {
 const globalEnvironment = new Environment();
 
 export class ExpressionInterpreter implements ExpressionVisitor {
-  public eval(expr: Expression): any {
-    return expr.accept(this);
+  constructor(private errorReporter: ErrorReporter) {}
+
+  public interpret(expr: Expression): any {
+    try {
+      return expr.accept(this);
+    } catch (err) {
+      const _err = err as TSLoxError;
+
+      this.errorReporter.report(_err);
+    }
   }
 
   private assertNumber(value: any) {
@@ -45,12 +51,20 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     if (expr.value.type === TokenType.NONE) return 0;
     if (expr.value.type === TokenType.TRUE) return 1;
     if (expr.value.type === TokenType.FALSE) return 0;
-    if (expr.value.type === TokenType.IDENTIFIER) return globalEnvironment.get(expr.value.literalValue as string);
+    if (expr.value.type === TokenType.IDENTIFIER) {
+      const variableName = expr.value.literalValue as string;
+
+      if (globalEnvironment.isDefined(variableName)) {
+        return globalEnvironment.get(expr.value.literalValue as string);
+      } else {
+        throw Errors.undefinedVariable(variableName, expr.value.location);
+      }
+    }
     else return expr.value.literalValue || 0;
   }
 
   visitUnaryExpr(expr: UnaryExpression) {
-    const value = this.eval(expr.expr);
+    const value = this.interpret(expr.expr);
 
     switch (expr.operator.type) {
       case TokenType.MINUS: {
@@ -70,22 +84,22 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 
   visitGroupingExpr(expr: GroupingExpression) {
-    return this.eval(expr.expr);
+    return this.interpret(expr.expr);
   }
 
   visitTernaryExpr(expr: TernaryExpression) {
-    let conditionalValue = this.eval(expr.conditionalExpression);
+    let conditionalValue = this.interpret(expr.conditionalExpression);
 
     if (conditionalValue) {
-      return this.eval(expr.truthyExpression);
+      return this.interpret(expr.truthyExpression);
     } else {
-      return this.eval(expr.falsyExpression);
+      return this.interpret(expr.falsyExpression);
     }
   }
 
   visitBinaryExpr(expr: BinaryExpression) {
-    const leftValue = this.eval(expr.leftExpr);
-    const rightValue = this.eval(expr.rightExpr);
+    const leftValue = this.interpret(expr.leftExpr);
+    const rightValue = this.interpret(expr.rightExpr);
 
     switch(expr.operator.type) {
       case TokenType.CARET: {
@@ -126,12 +140,12 @@ export class ExpressionInterpreter implements ExpressionVisitor {
 
   visitAssignmentExpr(expr: AssignmentExpression) {
     const variableName = expr.lValue.literalValue as string;
-    const value = this.eval(expr.rValue);
+    const value = this.interpret(expr.rValue);
 
     if (globalEnvironment.isDefined(variableName)) {
       globalEnvironment.define(variableName, value);
     } else {
-      throw Errors.undefinedVariable(variableName);
+      throw Errors.undefinedVariable(variableName, expr.lValue.location);
     }
 
     return value;
@@ -142,11 +156,11 @@ export class StatementInterpreter implements StatementVisitor {
   constructor(private expressionInterpreter: ExpressionInterpreter) {}
 
   visitExpressionStatement(statement: ExpressionStatement) {
-    return this.expressionInterpreter.eval(statement.expression);  
+    return this.expressionInterpreter.interpret(statement.expression);  
   }
 
   visitPrintStatement(statement: PrintStatement) {
-    const value = this.expressionInterpreter.eval(statement.expression);
+    const value = this.expressionInterpreter.interpret(statement.expression);
 
     console.log(value);
   }
@@ -159,7 +173,7 @@ export class StatementInterpreter implements StatementVisitor {
       let initializerValue = 0;
 
       if (initializer) {
-        initializerValue = this.expressionInterpreter.eval(initializer);
+        initializerValue = this.expressionInterpreter.interpret(initializer);
       }
 
       globalEnvironment.define(variableDeclaration.identifier, initializerValue);

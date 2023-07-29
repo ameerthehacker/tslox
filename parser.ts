@@ -1,4 +1,4 @@
-import { ErrorReporter } from "./error";
+import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { ExpressionStatement, PrintStatement, Statement, VariableDeclaration, VariableDeclarationStatement } from "./stmt";
@@ -46,7 +46,7 @@ export class Parser {
 
     if (this.match(TokenType.QUESTION_MARK)) {
       const truthyExpression = this.ternary();
-      this.consume(TokenType.COLON, 'Expected :');
+      this.consume(TokenType.COLON, new TSLoxError('Syntax', this.curToken.location, 'expected :'));
       const falsyExpression = this.ternary();
 
       expr = new TernaryExpression(expr, truthyExpression, falsyExpression);
@@ -59,16 +59,23 @@ export class Parser {
     let expr = this.ternary();
 
     if (this.match(TokenType.EQ)) {
+      let startToken: Token = this.curToken;
+
       if (expr instanceof Literal && expr.value.type === TokenType.IDENTIFIER) {
+        startToken = this.curToken;
         const rValue = this.assignment();
 
         expr = new AssignmentExpression(expr.value, rValue);
       } else {
-        throw new Error('Invalid assignment expression');;
+        throw new TSLoxError('Syntax', startToken.location, 'invalid assignment expression');
       }
     }
 
     return expr;
+  }
+
+  private getStartLocation(expr: Expression) {
+
   }
 
   private equality(): Expression {
@@ -146,11 +153,11 @@ export class Parser {
     return this.tokens[this.current];
   }
 
-  private consume(tokenType: TokenType, errorMessage: string) {
+  private consume(tokenType: TokenType, error: TSLoxError) {
     if (!this.isEof() && this.curToken.type === tokenType) {
       return this.advance();
     } else {
-      throw new Error(errorMessage);
+      throw error;
     }
   }
 
@@ -173,12 +180,12 @@ export class Parser {
     if (this.match(TokenType.OPEN_PAREN)) {
       const expr = this.expression();
 
-      this.consume(TokenType.CLOSE_PAREN, "Expect ')' after expression.");
+      this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, "expect ')' after expression."));
 
       return new GroupingExpression(expr);
     }
 
-    throw new Error(`Unexpected token ${this.curToken.type}`);
+    throw new TSLoxError('Syntax', this.curToken.location, `unexpected token ${this.curToken.type}`);
   }
 
   private expression(): Expression {
@@ -186,7 +193,7 @@ export class Parser {
   }
 
   private consumeSemicolon() {
-    this.consume(TokenType.SEMICOLON, 'Expected ;');
+    this.consume(TokenType.SEMICOLON, new TSLoxError('Syntax', this.curToken.location, 'expected ;'));
   }
 
   private printStatement() {
@@ -209,7 +216,7 @@ export class Parser {
     const variableDeclarations: VariableDeclaration[] = [];
     
     do {
-      const identifier = this.consume(TokenType.IDENTIFIER, 'Expected variable name');
+      const identifier = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, 'expected variable name'));
 
       let initializer: Expression | null = null; 
 
@@ -250,9 +257,9 @@ export class Parser {
 
       return statements;
     } catch(err) {
-      let _err = err as Error;
+      let _err = err as TSLoxError;
 
-      this.errorReporter.report(this.curToken.location, `Syntax Error: ${_err.message}`);
+      this.errorReporter.report(_err);
 
       return null;
     }

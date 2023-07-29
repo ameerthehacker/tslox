@@ -15,7 +15,7 @@ async function main() {
   const scriptFilePath = process.argv[2];
   const scriptFileContent = await fs.readFile(scriptFilePath, 'utf-8');
   const errorReporter = new ConsoleErrorReporter();
-  const expressionInterpreter = new ExpressionInterpreter();
+  const expressionInterpreter = new ExpressionInterpreter(errorReporter);
   const statementInterpreter = new StatementInterpreter(expressionInterpreter);
   const lexer = new Lexer(scriptFileContent, errorReporter);
   const tokens = lexer.lex();

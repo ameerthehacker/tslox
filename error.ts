@@ -1,11 +1,20 @@
 import { Location } from "./types";
 
+export class TSLoxError extends Error {
+  constructor(public type: 'Syntax' | 'Runtime', public location: Location, public message: string) {
+    super();
+
+    this.name = `${type} Error`;
+    this.message = `${location.row}:${location.col}: ${type} Error: ${message}`;
+  }
+}
+
 export interface ErrorReporter {
-  report(location: Location, message: string): void;
+  report(error: TSLoxError): void;
 }
 
 export default class ConsoleErrorReporter implements ErrorReporter {
-  report(location: Location, message: string): void {
-    console.error(`${location.row}:${location.col}: ${message}`);
+  report(error: TSLoxError): void {
+    console.error(error.message);
   }
 }
