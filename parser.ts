@@ -42,6 +42,7 @@ export class Parser {
   }
 
   private ternary(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.equality();
 
     if (this.match(TokenType.QUESTION_MARK)) {
@@ -49,23 +50,21 @@ export class Parser {
       this.consume(TokenType.COLON, new TSLoxError('Syntax', this.curToken.location, 'expected :'));
       const falsyExpression = this.ternary();
 
-      expr = new TernaryExpression(expr, truthyExpression, falsyExpression);
+      expr = new TernaryExpression(startToken.location, expr, truthyExpression, falsyExpression);
     }
 
     return expr;
   }
 
   private assignment(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.ternary();
 
     if (this.match(TokenType.EQ)) {
-      let startToken: Token = this.curToken;
-
       if (expr instanceof Literal && expr.value.type === TokenType.IDENTIFIER) {
-        startToken = this.curToken;
         const rValue = this.assignment();
 
-        expr = new AssignmentExpression(expr.value, rValue);
+        expr = new AssignmentExpression(startToken.location, expr.value, rValue);
       } else {
         throw new TSLoxError('Syntax', startToken.location, 'invalid assignment expression');
       }
@@ -79,60 +78,65 @@ export class Parser {
   }
 
   private equality(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.comparison();
 
     while (this.match(TokenType.EQ_EQ, TokenType.BANG_EQ)) {
       const operator = this.previous();
       const rightExpr = this.comparison();
-      expr = new BinaryExpression(expr, operator, rightExpr);
+      expr = new BinaryExpression(startToken.location, expr, operator, rightExpr);
     }
 
     return expr;
   }
 
   private comparison(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.term();
 
     while (this.match(TokenType.GT, TokenType.LT, TokenType.GTE, TokenType.LTE)) {
       const operator = this.previous();
       const rightExpr = this.term();
-      expr = new BinaryExpression(expr, operator, rightExpr);
+      expr = new BinaryExpression(startToken.location, expr, operator, rightExpr);
     }
 
     return expr;
   }
 
   private term(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.factor();
 
     while (this.match(TokenType.PLUS, TokenType.MINUS)) {
       const operator = this.previous();
       const rightExpr = this.factor();
-      expr = new BinaryExpression(expr, operator, rightExpr);
+      expr = new BinaryExpression(startToken.location, expr, operator, rightExpr);
     }
 
     return expr;
   }
 
   private factor(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.power();
 
     while (this.match(TokenType.SLASH, TokenType.MUL)) {
       const operator = this.previous();
       const rightExpr = this.power();
-      expr = new BinaryExpression(expr, operator, rightExpr);
+      expr = new BinaryExpression(startToken.location, expr, operator, rightExpr);
     }
 
     return expr;
   }
 
   private power(): Expression {
+    const startToken: Token = this.curToken;
     let expr = this.unary();
 
     while (this.match(TokenType.CARET)) {
       const operator = this.previous();
       const rightExpr = this.unary();
-      expr = new BinaryExpression(expr, operator, rightExpr);
+      expr = new BinaryExpression(startToken.location, expr, operator, rightExpr);
     }
 
     return expr;
@@ -143,7 +147,7 @@ export class Parser {
       const operator = this.previous();
       const rightExpr = this.unary();
 
-      return new UnaryExpression(operator, rightExpr);
+      return new UnaryExpression(operator.location, operator, rightExpr);
     }
 
     return this.primary();
@@ -177,12 +181,14 @@ export class Parser {
       return new Literal(token);
     }
 
+    const startToken = this.curToken;
+
     if (this.match(TokenType.OPEN_PAREN)) {
       const expr = this.expression();
 
       this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, "expect ')' after expression."));
 
-      return new GroupingExpression(expr);
+      return new GroupingExpression(startToken.location, expr);
     }
 
     throw new TSLoxError('Syntax', this.curToken.location, `unexpected token ${this.curToken.type}`);

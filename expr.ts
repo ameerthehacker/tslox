@@ -1,4 +1,5 @@
 import { Token } from './lexer';
+import { Location } from './types';
 
 export interface ExpressionVisitor {
   visitAssignmentExpr: (expr: AssignmentExpression) => any;
@@ -10,12 +11,14 @@ export interface ExpressionVisitor {
 }
 
 export abstract class Expression {
+  constructor(public location: Location) {}
+
   abstract accept(visitor: ExpressionVisitor): any;
 }
 
 export class TernaryExpression extends Expression {
-  constructor(public conditionalExpression: Expression, public truthyExpression: Expression, public falsyExpression: Expression) {
-    super();
+  constructor(public location: Location, public conditionalExpression: Expression, public truthyExpression: Expression, public falsyExpression: Expression) {
+    super(location);
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -25,11 +28,12 @@ export class TernaryExpression extends Expression {
 
 export class BinaryExpression extends Expression {
   constructor(
+    public location: Location,
     public leftExpr: Expression,
     public operator: Token,
     public rightExpr: Expression
   ) {
-    super();
+    super(location);
   }
 
   accept(visitor: ExpressionVisitor): void {
@@ -38,8 +42,8 @@ export class BinaryExpression extends Expression {
 }
 
 export class UnaryExpression extends Expression {
-  constructor(public operator: Token, public expr: Expression) {
-    super();
+  constructor(public location: Location, public operator: Token, public expr: Expression) {
+    super(location);
   }
 
   accept(visitor: ExpressionVisitor): void {
@@ -48,8 +52,8 @@ export class UnaryExpression extends Expression {
 }
 
 export class AssignmentExpression extends Expression {
-  constructor(public lValue: Token, public rValue: Expression) {
-    super();
+  constructor(public location: Location, public lValue: Token, public rValue: Expression) {
+    super(location);
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -58,8 +62,8 @@ export class AssignmentExpression extends Expression {
 }
 
 export class GroupingExpression extends Expression {
-  constructor(public expr: Expression) {
-    super();
+  constructor(public location: Location, public expr: Expression) {
+    super(location);
   }
 
   accept(visitor: ExpressionVisitor): void {
@@ -69,7 +73,7 @@ export class GroupingExpression extends Expression {
 
 export class Literal extends Expression {
   constructor(public value: Token) {
-    super();
+    super(value.location);
   }
 
   accept(visitor: ExpressionVisitor): void {

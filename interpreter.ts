@@ -33,15 +33,19 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     try {
       return expr.accept(this);
     } catch (err) {
-      const _err = err as TSLoxError;
-
-      this.errorReporter.report(_err);
+      if (err instanceof TSLoxError) {
+        this.errorReporter.report(err);
+      } else {
+        throw err;
+      }
     }
   }
 
-  private assertNumber(value: any) {
+  private assertNumber(expr: Expression) {
+    const value = this.interpret(expr);
+
     if (isNaN(value)) {
-      throw new Error('expected operand to be a number');
+      throw new TSLoxError('Runtime', expr.location, 'expected operand to be a number');
     } else {
       return value as number;
     }
@@ -64,16 +68,16 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 
   visitUnaryExpr(expr: UnaryExpression) {
-    const value = this.interpret(expr.expr);
-
     switch (expr.operator.type) {
       case TokenType.MINUS: {
-        return -this.assertNumber(value);
+        return -this.assertNumber(expr.expr);
       }
       case TokenType.PLUS: {
-        return this.assertNumber(value);
+        return this.assertNumber(expr.expr);
       }
       case TokenType.BANG: {
+        const value = this.interpret(expr.expr);
+
         if (value) {
           return 0;
         } else {
@@ -98,41 +102,46 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 
   visitBinaryExpr(expr: BinaryExpression) {
-    const leftValue = this.interpret(expr.leftExpr);
-    const rightValue = this.interpret(expr.rightExpr);
+   
 
     switch(expr.operator.type) {
       case TokenType.CARET: {
-        return Math.pow(this.assertNumber(leftValue), this.assertNumber(rightValue));
+        return Math.pow(this.assertNumber(expr.leftExpr), this.assertNumber(expr.rightExpr));
       }
       case TokenType.PLUS: {
-        return leftValue + rightValue;
+        return this.interpret(expr.leftExpr) + this.interpret(expr.rightExpr);
       }
       case TokenType.MINUS: {
-        return this.assertNumber(leftValue) - this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) - this.assertNumber(expr.rightExpr);
       }
       case TokenType.MUL: {
-        return this.assertNumber(leftValue) * this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) * this.assertNumber(expr.rightExpr);
       }
       case TokenType.SLASH: {
-        return this.assertNumber(leftValue) / this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) / this.assertNumber(expr.rightExpr);
       }
       case TokenType.GT: {
-        return this.assertNumber(leftValue) > this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) > this.assertNumber(expr.rightExpr);
       }
       case TokenType.GTE: {
-        return this.assertNumber(leftValue) >= this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) >= this.assertNumber(expr.rightExpr);
       }
       case TokenType.LT: {
-        return this.assertNumber(leftValue) < this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) < this.assertNumber(expr.rightExpr);
       }
       case TokenType.LTE: {
-        return this.assertNumber(leftValue) <= this.assertNumber(rightValue);
+        return this.assertNumber(expr.leftExpr) <= this.assertNumber(expr.rightExpr);
       }
       case TokenType.EQ_EQ: {
+        const leftValue = this.interpret(expr.leftExpr);
+        const rightValue = this.interpret(expr.rightExpr);
+
         return leftValue === rightValue;
       }
       case TokenType.BANG_EQ: {
+        const leftValue = this.interpret(expr.leftExpr);
+        const rightValue = this.interpret(expr.rightExpr);
+
         return leftValue !== rightValue;
       }
     }
