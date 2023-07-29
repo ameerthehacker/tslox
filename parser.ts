@@ -1,5 +1,5 @@
 import { ErrorReporter } from "./error";
-import { BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { ExpressionStatement, PrintStatement, Statement, VariableDeclaration, VariableDeclarationStatement } from "./stmt";
 
@@ -44,12 +44,28 @@ export class Parser {
   private ternary(): Expression {
     let expr = this.equality();
 
-    while (this.match(TokenType.QUESTION_MARK)) {
+    if (this.match(TokenType.QUESTION_MARK)) {
       const truthyExpression = this.ternary();
       this.consume(TokenType.COLON, 'Expected :');
       const falsyExpression = this.ternary();
 
       expr = new TernaryExpression(expr, truthyExpression, falsyExpression);
+    }
+
+    return expr;
+  }
+
+  private assignment(): Expression {
+    let expr = this.ternary();
+
+    if (this.match(TokenType.EQ)) {
+      if (expr instanceof Literal && expr.value.type === TokenType.IDENTIFIER) {
+        const rValue = this.assignment();
+
+        expr = new AssignmentExpression(expr.value, rValue);
+      } else {
+        throw new Error('Invalid assignment expression');;
+      }
     }
 
     return expr;
@@ -166,7 +182,7 @@ export class Parser {
   }
 
   private expression(): Expression {
-    return this.ternary();
+    return this.assignment();
   }
 
   private consumeSemicolon() {

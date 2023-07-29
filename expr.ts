@@ -1,6 +1,7 @@
 import { Token } from './lexer';
 
 export interface ExpressionVisitor {
+  visitAssignmentExpr: (expr: AssignmentExpression) => any;
   visitTernaryExpr: (expr: TernaryExpression) => any;
   visitBinaryExpr: (expr: BinaryExpression) => any;
   visitUnaryExpr: (expr: UnaryExpression) => any;
@@ -43,6 +44,16 @@ export class UnaryExpression extends Expression {
 
   accept(visitor: ExpressionVisitor): void {
     return visitor.visitUnaryExpr(this);
+  }
+}
+
+export class AssignmentExpression extends Expression {
+  constructor(public lValue: Token, public rValue: Expression) {
+    super();
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitAssignmentExpr(this);
   }
 }
 

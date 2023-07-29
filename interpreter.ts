@@ -1,6 +1,10 @@
-import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
 import { ExpressionStatement, PrintStatement, StatementVisitor, VariableDeclarationStatement } from "./stmt";
+
+const Errors = {
+  undefinedVariable: (variableName: string) => new Error(`Undefined variable '${variableName}'`)
+} 
 
 class Environment {
   constructor(private map: Map<string, any> = new Map()) {}
@@ -13,8 +17,12 @@ class Environment {
     if (this.map.has(variableName)) {
       return this.map.get(variableName);
     } else {
-      throw new Error(`Undefined variable '${variableName}'`);
+      throw Errors.undefinedVariable(variableName);
     }
+  }
+
+  isDefined(variableName: string) {
+    return this.map.has(variableName);
   }
 }
 
@@ -114,6 +122,19 @@ export class ExpressionInterpreter implements ExpressionVisitor {
         return leftValue !== rightValue;
       }
     }
+  }
+
+  visitAssignmentExpr(expr: AssignmentExpression) {
+    const variableName = expr.lValue.literalValue as string;
+    const value = this.eval(expr.rValue);
+
+    if (globalEnvironment.isDefined(variableName)) {
+      globalEnvironment.define(variableName, value);
+    } else {
+      throw Errors.undefinedVariable(variableName);
+    }
+
+    return value;
   }
 }
 

@@ -1,4 +1,4 @@
-import { BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 
 class ExpressionPrinter implements ExpressionVisitor {
   private parenthesis(operator: string, ...expressions: Expression[]) {
@@ -33,6 +33,10 @@ class ExpressionPrinter implements ExpressionVisitor {
 
   visitTernaryExpr(expr: TernaryExpression) {
     return this.parenthesis('ternary', expr.conditionalExpression, expr.truthyExpression, expr.falsyExpression);
+  }
+
+  visitAssignmentExpr(expr: AssignmentExpression)  {
+    return this.parenthesis(`${expr.lValue.literalValue} =`, expr.rValue);
   }
 }
 

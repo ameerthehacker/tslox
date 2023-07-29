@@ -1,4 +1,6 @@
-let first_name = "Ameer", last_name = "Jhan";
-let message = "Hello " + first_name + " " + last_name + "!";
-print message;
-print unknown;
+let ternary = "hello world!";
+let another_variable;
+print ternary;
+another_variable = ternary = "hello workd edited";
+print ternary;
+print another_variable;
