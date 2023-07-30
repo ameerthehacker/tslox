@@ -9,6 +9,7 @@ export interface StatementVisitor {
   visitBlockStatement(statement: BlockStatement): any;
   visitIfStatement(statement: IfStatement): any;
   visitWhileStatement(statement: WhileStatement): any;
+  visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement): any;
 }
 
 export abstract class Statement {
@@ -62,5 +63,15 @@ export class WhileStatement extends Statement {
 
   accept(visitor: StatementVisitor) {
     visitor.visitWhileStatement(this);
+  }
+}
+
+export class FunctionDeclarationStatement extends Statement {
+  constructor(public functionName: Token, public args: Token[], public body: BlockStatement) {
+    super();
+  }
+
+  accept(visitor: StatementVisitor) {
+    return visitor.visitFunctionDeclarationStatement(this);
   }
 }

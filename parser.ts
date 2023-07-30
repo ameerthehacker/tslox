@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, IfStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -289,8 +289,31 @@ export class Parser {
     return new WhileStatement(condition, body);
   }
 
+  private functionDeclarationStatement(): FunctionDeclarationStatement {
+    const functionName = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, 'expected function name'));
+    this.consume(TokenType.OPEN_PAREN, new TSLoxError('Syntax', functionName.location, `expected ${TokenType.OPEN_PAREN} before function arguments`));
+    const args: Token[] = [];
+
+    if (!this.check(TokenType.CLOSE_PAREN)) {
+      do {
+        const arg = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, `expected function argument to be an identifer but got ${this.curToken.type}`));
+
+        args.push(arg);
+      } while (this.match(TokenType.COMMA))
+    }
+
+    this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.CLOSE_PAREN} after function arguments`));
+    this.consume(TokenType.OPEN_BRACE, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.OPEN_BRACE} before function body`));
+    const body = this.blockStatement();
+
+    return new FunctionDeclarationStatement(functionName, args, body);
+  }
+
   private statement(): Statement {
-    if (this.match(TokenType.WHILE)) {
+    if (this.match(TokenType.FUNCTION)) {
+      return this.functionDeclarationStatement();
+    }
+    else if (this.match(TokenType.WHILE)) {
       return this.whileStatement();
     }
     else if (this.match(TokenType.IF)) {

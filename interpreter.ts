@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, IfStatement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
 const Errors = {
@@ -54,6 +54,25 @@ abstract class LoxCallable {
   abstract call(...args: any[]): any;
 
   abstract toString(): string;
+}
+
+class LoxCallableFn extends LoxCallable {
+  constructor(private outerScopeEnvironment: Environment, private functionDeclaration: FunctionDeclarationStatement, private interpreter: StatementInterpreter) {
+    super(functionDeclaration.args.length);
+  }
+
+  call(...args: any[]) {
+    const environment = new Environment(this.outerScopeEnvironment);
+    const argNames = this.functionDeclaration.args.map(arg => arg.literalValue as string);
+
+    argNames.forEach((argName, index) => environment.define(argName, args[index]));
+
+    this.interpreter.interpretBlockStatement(this.functionDeclaration.body, environment);
+  }
+
+  toString(): string {
+    return `fn <${this.functionDeclaration.functionName.literalValue}>`;
+  }
 }
 
 abstract class NativeLoxCallable extends LoxCallable {
@@ -264,14 +283,23 @@ export class StatementInterpreter implements StatementVisitor {
     }
   }
 
-  visitBlockStatement(statement: BlockStatement) {
-    environment = new Environment(environment);
-
-    statement.statements.forEach(statement => statement.accept(this));
+  interpretBlockStatement(blockStatement: BlockStatement, env: Environment) {
+    environment = env;
+    blockStatement.statements.forEach(statement => statement.accept(this));
 
     if (environment.outerScope) {
       environment = environment.outerScope;
     }
+  }
+
+  visitBlockStatement(statement: BlockStatement) {
+    this.interpretBlockStatement(statement, new Environment(environment));
+  }
+
+  visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement) {
+    const functionName = statement.functionName.literalValue as string;
+
+    environment.define(functionName, new LoxCallableFn(environment, statement, this));
   }
 
   visitIfStatement(statement: IfStatement) {

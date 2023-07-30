@@ -1,3 +1,6 @@
-let now = clock();
+function sayHello(name) {
+    print("Hello " + name + "!");
+}
 
-print(now);
+sayHello("Ameer");
+print(sayHello);
