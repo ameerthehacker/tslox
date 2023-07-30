@@ -1,6 +1,10 @@
 function sayHello(name) {
-    print("Hello " + name + "!");
+    return "Hello " + name + "!";
 }
 
-sayHello("Ameer");
-print(sayHello);
+function add(a, b) {
+    return a + b;
+}
+
+print(sayHello("Ameer"));
+print(add(2, 3));

@@ -36,7 +36,8 @@ export enum TokenType {
   IF = 'if',
   ELSE = 'else',
   WHILE = 'while',
-  FUNCTION = 'function'
+  FUNCTION = 'function',
+  RETURN = 'return'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -48,7 +49,8 @@ const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.IF]: TokenType.IF,
   [TokenType.ELSE]: TokenType.ELSE,
   [TokenType.WHILE]: TokenType.WHILE,
-  [TokenType.FUNCTION]: TokenType.FUNCTION
+  [TokenType.FUNCTION]: TokenType.FUNCTION,
+  [TokenType.RETURN]: TokenType.RETURN
 };
 
 export type Token = {

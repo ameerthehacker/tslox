@@ -1,5 +1,6 @@
 import { Expression } from "./expr";
 import { Token } from "./lexer";
+import { TokenLocation } from "./types";
 
 export type VariableDeclaration = {identifier: Token, initializer: Expression | null};
 
@@ -10,6 +11,7 @@ export interface StatementVisitor {
   visitIfStatement(statement: IfStatement): any;
   visitWhileStatement(statement: WhileStatement): any;
   visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement): any;
+  visitReturnStatement(statement: ReturnStatement): any;
 }
 
 export abstract class Statement {
@@ -73,5 +75,15 @@ export class FunctionDeclarationStatement extends Statement {
 
   accept(visitor: StatementVisitor) {
     return visitor.visitFunctionDeclarationStatement(this);
+  }
+}
+
+export class ReturnStatement extends Statement {
+  constructor(public returnTokenLocation: TokenLocation,  public returnExpr: Expression | null) {
+    super();
+  }
+
+  accept(visitor: StatementVisitor) {
+    visitor.visitReturnStatement(this);
   }
 }

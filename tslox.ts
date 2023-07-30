@@ -15,17 +15,15 @@ async function main() {
   const scriptFilePath = process.argv[2];
   const scriptFileContent = await fs.readFile(scriptFilePath, 'utf-8');
   const errorReporter = new ConsoleErrorReporter();
-  const expressionInterpreter = new ExpressionInterpreter(errorReporter);
-  const statementInterpreter = new StatementInterpreter(expressionInterpreter);
+  const expressionInterpreter = new ExpressionInterpreter();
+  const statementInterpreter = new StatementInterpreter(expressionInterpreter, errorReporter);
   const lexer = new Lexer(scriptFileContent, errorReporter);
   const tokens = lexer.lex();
   const parser = new Parser(tokens, errorReporter);
   const statements = parser.parse();
 
   if (statements) {
-    for (const statement of statements) {
-      statement.accept(statementInterpreter);
-    }
+    statementInterpreter.interpret(statements);
   }
 }
 

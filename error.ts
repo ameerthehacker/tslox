@@ -1,3 +1,4 @@
+import { ReturnStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
 export class TSLoxError extends Error {
@@ -6,6 +7,12 @@ export class TSLoxError extends Error {
 
     this.name = `${type} Error`;
     this.message = `${location.row}:${location.col}: ${type} Error: ${message}`;
+  }
+}
+
+export class ReturnStatementError extends Error {
+  constructor(public returnStatement: ReturnStatement) {
+    super();
   }
 }
 

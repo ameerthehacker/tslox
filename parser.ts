@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -309,8 +309,24 @@ export class Parser {
     return new FunctionDeclarationStatement(functionName, args, body);
   }
 
+  private returnStatement(): ReturnStatement {
+    let returnExpr: Expression | null = null;
+    const returnTokenLocation = this.previous().location;
+
+    if (!this.check(TokenType.SEMICOLON)) {
+      returnExpr = this.expression();
+    }
+
+    this.consumeSemicolon();
+
+    return new ReturnStatement(returnTokenLocation, returnExpr);
+  }
+
   private statement(): Statement {
-    if (this.match(TokenType.FUNCTION)) {
+    if (this.match(TokenType.RETURN)) {
+      return this.returnStatement();
+    }
+    else if (this.match(TokenType.FUNCTION)) {
       return this.functionDeclarationStatement();
     }
     else if (this.match(TokenType.WHILE)) {

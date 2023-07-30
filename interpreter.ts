@@ -1,7 +1,7 @@
-import { ErrorReporter, TSLoxError } from "./error";
+import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
 const Errors = {
@@ -107,18 +107,10 @@ environment.define('clock', new NativeClock(0));
 environment.define('print', new NativePrint(1));
 
 export class ExpressionInterpreter implements ExpressionVisitor {
-  constructor(private errorReporter: ErrorReporter) {}
+  constructor() {}
 
   public interpret(expr: Expression): any {
-    try {
-      return expr.accept(this);
-    } catch (err) {
-      if (err instanceof TSLoxError) {
-        this.errorReporter.report(err);
-      } else {
-        throw err;
-      }
-    }
+    return expr.accept(this);
   }
 
   private assertNumber(expr: Expression) {
@@ -249,7 +241,18 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       }
 
       const args = expr.args.map(arg => this.interpret(arg));
-      return loxCallable.call(...args);
+      
+      try {
+        loxCallable.call(...args);
+      } catch (err) {
+        if (err instanceof ReturnStatementError) {
+          if (err.returnStatement.returnExpr) {
+            return this.interpret(err.returnStatement.returnExpr);
+          }
+        }
+      }
+
+      return 0;
     } else {
       throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);
     }
@@ -257,7 +260,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
 }
 
 export class StatementInterpreter implements StatementVisitor {
-  constructor(private expressionInterpreter: ExpressionInterpreter) {}
+  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter) {}
 
   visitExpressionStatement(statement: ExpressionStatement) {
     return this.expressionInterpreter.interpret(statement.expression);  
@@ -318,6 +321,26 @@ export class StatementInterpreter implements StatementVisitor {
     while (conditionValue) {
       statement.body.accept(this);
       conditionValue = this.expressionInterpreter.interpret(statement.condition);
+    }
+  }
+
+  visitReturnStatement(statement: ReturnStatement) {
+    throw new ReturnStatementError(statement);
+  }
+
+  interpret(statements: Statement[]) {
+    for (const statement of statements) {
+      try {
+        statement.accept(this);
+      } catch (error) {
+        if (error instanceof TSLoxError) {
+          this.errorReporter.report(error);
+        } else if (error instanceof ReturnStatementError) {
+          this.errorReporter.report(new TSLoxError('Runtime', error.returnStatement.returnTokenLocation, 'cannot use return statement outside a function'));
+        } else {
+          throw error;
+        }
+      }
     }
   }
 }
