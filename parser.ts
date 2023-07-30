@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, Expression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, Expression, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, PrintStatement, Statement, VariableDeclaration, VariableDeclarationStatement } from "./stmt";
+import { BlockStatement, ExpressionStatement, IfStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -27,14 +27,18 @@ export class Parser {
   }
 
   private match(...tokenTypes: TokenType[]) {
-    const curToken = this.peek();
+    const nextToken = this.peek();
 
-    if (curToken && tokenTypes.includes(curToken.type)) {
+    if (nextToken && tokenTypes.includes(nextToken.type)) {
       this.advance();
       return true;
     }
 
     return false;
+  }
+
+  private check(type: TokenType) {
+    return this.curToken.type === type;
   }
 
   private previous() {
@@ -47,7 +51,7 @@ export class Parser {
 
     if (this.match(TokenType.QUESTION_MARK)) {
       const truthyExpression = this.ternary();
-      this.consume(TokenType.COLON, new TSLoxError('Syntax', this.curToken.location, 'expected :'));
+      this.consume(TokenType.COLON, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.COLON}`));
       const falsyExpression = this.ternary();
 
       expr = new TernaryExpression(startToken.location, expr, truthyExpression, falsyExpression);
@@ -146,19 +150,31 @@ export class Parser {
       return new UnaryExpression(operator.location, operator, rightExpr);
     }
 
-    return this.primary();
+    return this.call();
   }
 
-  private get curToken() {
-    return this.tokens[this.current];
-  }
+  private call(): Expression {
+    let calle = this.primary();
+    
+    while (true) {
+      if (this.match(TokenType.OPEN_PAREN)) {
+        const args: Expression[] = [];
 
-  private consume(tokenType: TokenType, error: TSLoxError) {
-    if (!this.isEOF() && this.curToken.type === tokenType) {
-      return this.advance();
-    } else {
-      throw error;
+        if (!this.check(TokenType.CLOSE_PAREN)) {
+          do {
+            args.push(this.expression());
+          } while(this.match(TokenType.COMMA));
+        }
+
+        this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', calle.location, `expected ${TokenType.CLOSE_PAREN} after function call`));
+
+        calle = new FunctionCallExpression(calle.location, calle, args);
+      } else {
+        break;
+      }
     }
+
+    return calle;
   }
 
   private primary(): Expression {
@@ -182,7 +198,7 @@ export class Parser {
     if (this.match(TokenType.OPEN_PAREN)) {
       const expr = this.expression();
 
-      this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, "expect ')' after expression."));
+      this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, `expect '${TokenType.CLOSE_PAREN}' after expression`));
 
       return new GroupingExpression(startToken.location, expr);
     }
@@ -190,20 +206,24 @@ export class Parser {
     throw new TSLoxError('Syntax', this.curToken.location, `unexpected token ${this.curToken.type}`);
   }
 
+  private get curToken() {
+    return this.tokens[this.current];
+  }
+
+  private consume(tokenType: TokenType, error: TSLoxError) {
+    if (!this.isEOF() && this.curToken.type === tokenType) {
+      return this.advance();
+    } else {
+      throw error;
+    }
+  }
+
   private expression(): Expression {
     return this.assignment();
   }
 
   private consumeSemicolon() {
-    this.consume(TokenType.SEMICOLON, new TSLoxError('Syntax', this.curToken.location, 'expected ;'));
-  }
-
-  private printStatement() {
-    const expr = this.expression();
-
-    this.consumeSemicolon();
-
-    return new PrintStatement(expr);
+    this.consume(TokenType.SEMICOLON, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.SEMICOLON} at end of statement`));
   }
 
   private expressionStatement() {
@@ -237,25 +257,52 @@ export class Parser {
   private blockStatement(): BlockStatement {
     const statements: Statement[] = [];
 
-    while (!this.isEOF() && this.peek()?.type !== TokenType.CLOSE_BRACE) {
+    while (!this.isEOF() && !this.check(TokenType.CLOSE_BRACE)) {
       statements.push(this.statement());
     }
 
-    this.consume(TokenType.CLOSE_BRACE, new TSLoxError('Syntax', this.curToken.location, 'expected }'));
+    this.consume(TokenType.CLOSE_BRACE, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.CLOSE_BRACE}`));
 
     return new BlockStatement(statements);
   }
 
+  private ifStatement(): IfStatement {
+    this.consume(TokenType.OPEN_PAREN, new TSLoxError('Syntax', this.curToken.location, `expected '${TokenType.OPEN_PAREN}' before if condition`));
+    const condition = this.expression();
+    this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, `expected '${TokenType.CLOSE_PAREN}' after if condition`));
+    const trueStatement = this.statement();
+    let elseStatement: Statement | null = null;
+
+    if (this.match(TokenType.ELSE)) {
+      elseStatement = this.statement();
+    }
+
+    return new IfStatement(condition, trueStatement, elseStatement);
+  }
+
+  private whileStatement(): WhileStatement {
+    this.consume(TokenType.OPEN_PAREN, new TSLoxError('Syntax', this.curToken.location, `expected '${TokenType.OPEN_PAREN}' before while condition`));
+    const condition = this.expression();
+    this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', this.curToken.location, `expected '${TokenType.CLOSE_PAREN}' after while condition`));
+    const body = this.statement();
+
+    return new WhileStatement(condition, body);
+  }
+
   private statement(): Statement {
-    if (this.match(TokenType.OPEN_BRACE)) {
+    if (this.match(TokenType.WHILE)) {
+      return this.whileStatement();
+    }
+    else if (this.match(TokenType.IF)) {
+      return this.ifStatement();
+    }
+    else if (this.match(TokenType.OPEN_BRACE)) {
       return this.blockStatement();
     }
     else if (this.match(TokenType.LET)) {
       return this.variableDeclarationStatement();
     }
-    else if (this.match(TokenType.PRINT)) {
-      return this.printStatement();
-    } else {
+    else {
       return this.expressionStatement();
     }
   }

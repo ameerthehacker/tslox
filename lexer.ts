@@ -1,5 +1,5 @@
 import { ErrorReporter, TSLoxError } from './error';
-import { Location } from './types';
+import { TokenLocation } from './types';
 
 export enum TokenType {
   EOF = 'EOF',
@@ -32,7 +32,10 @@ export enum TokenType {
   COLON = ':',
   PRINT = 'print',
   LET = 'let',
-  COMMA = ','
+  COMMA = ',',
+  IF = 'if',
+  ELSE = 'else',
+  WHILE = 'while'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -40,14 +43,16 @@ const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.TRUE]: TokenType.TRUE,
   [TokenType.FALSE]: TokenType.FALSE,
   [TokenType.NONE]: TokenType.NONE,
-  [TokenType.PRINT]: TokenType.PRINT,
-  [TokenType.LET]: TokenType.LET
+  [TokenType.LET]: TokenType.LET,
+  [TokenType.IF]: TokenType.IF,
+  [TokenType.ELSE]: TokenType.ELSE,
+  [TokenType.WHILE]: TokenType.WHILE
 };
 
 export type Token = {
   type: TokenType;
   literalValue?: string | number;
-  location: Location
+  location: TokenLocation
 };
 
 export default class Lexer {

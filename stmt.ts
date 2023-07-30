@@ -5,9 +5,10 @@ export type VariableDeclaration = {identifier: Token, initializer: Expression | 
 
 export interface StatementVisitor {
   visitExpressionStatement(statement: ExpressionStatement): any;
-  visitPrintStatement(statement: PrintStatement): any;
   visitVariableDeclarationStatement(statement: VariableDeclarationStatement): any;
-  visitBlockStatement(statement: Statement): any
+  visitBlockStatement(statement: BlockStatement): any;
+  visitIfStatement(statement: IfStatement): any;
+  visitWhileStatement(statement: WhileStatement): any;
 }
 
 export abstract class Statement {
@@ -44,12 +45,22 @@ export class BlockStatement extends Statement {
   }
 }
 
-export class PrintStatement extends Statement {
-  constructor(public expression: Expression) {
+export class IfStatement extends Statement {
+  constructor(public condition: Expression, public trueStatement: Statement, public falseStatement?: Statement | null) {
     super();
   }
 
   accept(visitor: StatementVisitor) {
-    return visitor.visitPrintStatement(this);
+    visitor.visitIfStatement(this);
+  }
+}
+
+export class WhileStatement extends Statement {
+  constructor(public condition: Expression, public body: Statement) {
+    super();
+  }
+
+  accept(visitor: StatementVisitor) {
+    visitor.visitWhileStatement(this);
   }
 }

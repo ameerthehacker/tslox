@@ -1,4 +1,4 @@
-import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 
 class ExpressionPrinter implements ExpressionVisitor {
   private parenthesis(operator: string, ...expressions: Expression[]) {
@@ -38,6 +38,10 @@ class ExpressionPrinter implements ExpressionVisitor {
   visitAssignmentExpr(expr: AssignmentExpression)  {
     return this.parenthesis(`${expr.lValue.literalValue} =`, expr.rValue);
   }
+
+  visitFunctionCallExpr(expr: FunctionCallExpression) {
+    return this.parenthesis(`func ${expr.calle.accept(this)}`, ...expr.args);
+  };
 }
 
 export function printExpression(expr: Expression) {

@@ -1,5 +1,5 @@
 import { Token } from './lexer';
-import { Location } from './types';
+import { TokenLocation } from './types';
 
 export interface ExpressionVisitor {
   visitAssignmentExpr: (expr: AssignmentExpression) => any;
@@ -8,16 +8,17 @@ export interface ExpressionVisitor {
   visitUnaryExpr: (expr: UnaryExpression) => any;
   visitGroupingExpr: (expr: GroupingExpression) => any;
   visitLiteral: (expr: Literal) => any;
+  visitFunctionCallExpr: (expr: FunctionCallExpression) => any;
 }
 
 export abstract class Expression {
-  constructor(public location: Location) {}
+  constructor(public location: TokenLocation) {}
 
   abstract accept(visitor: ExpressionVisitor): any;
 }
 
 export class TernaryExpression extends Expression {
-  constructor(public location: Location, public conditionalExpression: Expression, public truthyExpression: Expression, public falsyExpression: Expression) {
+  constructor(public location: TokenLocation, public conditionalExpression: Expression, public truthyExpression: Expression, public falsyExpression: Expression) {
     super(location);
   }
 
@@ -28,7 +29,7 @@ export class TernaryExpression extends Expression {
 
 export class BinaryExpression extends Expression {
   constructor(
-    public location: Location,
+    public location: TokenLocation,
     public leftExpr: Expression,
     public operator: Token,
     public rightExpr: Expression
@@ -42,7 +43,7 @@ export class BinaryExpression extends Expression {
 }
 
 export class UnaryExpression extends Expression {
-  constructor(public location: Location, public operator: Token, public expr: Expression) {
+  constructor(public location: TokenLocation, public operator: Token, public expr: Expression) {
     super(location);
   }
 
@@ -52,7 +53,7 @@ export class UnaryExpression extends Expression {
 }
 
 export class AssignmentExpression extends Expression {
-  constructor(public location: Location, public lValue: Token, public rValue: Expression) {
+  constructor(public location: TokenLocation, public lValue: Token, public rValue: Expression) {
     super(location);
   }
 
@@ -62,12 +63,22 @@ export class AssignmentExpression extends Expression {
 }
 
 export class GroupingExpression extends Expression {
-  constructor(public location: Location, public expr: Expression) {
+  constructor(public location: TokenLocation, public expr: Expression) {
     super(location);
   }
 
   accept(visitor: ExpressionVisitor): void {
     return visitor.visitGroupingExpr(this);
+  }
+}
+
+export class FunctionCallExpression extends Expression {
+  constructor(public location: TokenLocation, public calle: Expression, public args: Expression[]) {
+    super(location);
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitFunctionCallExpr(this);
   }
 }
 

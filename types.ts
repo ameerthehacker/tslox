@@ -1,4 +1,4 @@
-export type Location = {
+export type TokenLocation = {
   row: number;
   col: number;
 }

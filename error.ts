@@ -1,7 +1,7 @@
-import { Location } from "./types";
+import { TokenLocation } from "./types";
 
 export class TSLoxError extends Error {
-  constructor(public type: 'Syntax' | 'Runtime', public location: Location, public message: string) {
+  constructor(public type: 'Syntax' | 'Runtime', public location: TokenLocation, public message: string) {
     super();
 
     this.name = `${type} Error`;

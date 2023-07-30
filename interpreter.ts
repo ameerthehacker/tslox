@@ -1,11 +1,11 @@
 import { ErrorReporter, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, PrintStatement, StatementVisitor, VariableDeclarationStatement } from "./stmt";
-import { Location } from "./types";
+import { BlockStatement, ExpressionStatement, IfStatement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { TokenLocation } from "./types";
 
 const Errors = {
-  undefinedVariable: (variableName: string, location: Location) => new TSLoxError('Runtime', location, `undefined variable '${variableName}'`)
+  undefinedVariable: (variableName: string, location: TokenLocation) => new TSLoxError('Runtime', location, `undefined variable '${variableName}'`)
 } 
 
 class Environment {
@@ -26,7 +26,11 @@ class Environment {
   }
 
   get(variableName: string): any {
-    return this.map.get(variableName) || this._outerScope?.get(variableName);
+    if (this.map.has(variableName)) {
+      return this.map.get(variableName)
+    } else {
+      return this._outerScope?.get(variableName);
+    }
   }
 
   isDefined(variableName: string): boolean {
@@ -43,6 +47,45 @@ class Environment {
 }
 
 let environment = new Environment();
+
+abstract class LoxCallable {
+  constructor(public arity: number) {}
+
+  abstract call(...args: any[]): any;
+
+  abstract toString(): string;
+}
+
+abstract class NativeLoxCallable extends LoxCallable {
+  abstract call(...args: any[]): any;
+
+  toString(): string {
+    return 'fn <native>';
+  }
+}
+
+class NativeClock extends NativeLoxCallable {
+  constructor(arity: number) {
+    super(arity);
+  }
+
+  call(...args: any[]) {
+    return performance.now();  
+  }
+}
+
+class NativePrint extends NativeLoxCallable {
+  constructor(arity: number) {
+    super(arity);
+  }
+
+  call(...args: any[]) {
+    console.log(String(args[0]));
+  }
+}
+
+environment.define('clock', new NativeClock(0));
+environment.define('print', new NativePrint(1));
 
 export class ExpressionInterpreter implements ExpressionVisitor {
   constructor(private errorReporter: ErrorReporter) {}
@@ -177,6 +220,21 @@ export class ExpressionInterpreter implements ExpressionVisitor {
 
     return value;
   }
+
+  visitFunctionCallExpr(expr: FunctionCallExpression) {
+    const loxCallable = this.interpret(expr.calle);
+
+    if (loxCallable instanceof LoxCallable) {
+      if (loxCallable.arity !== expr.args.length) {
+        throw new TSLoxError('Runtime', expr.calle.location, `expected ${loxCallable.arity} args but got ${expr.args.length}`);
+      }
+
+      const args = expr.args.map(arg => this.interpret(arg));
+      return loxCallable.call(...args);
+    } else {
+      throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);
+    }
+  }
 }
 
 export class StatementInterpreter implements StatementVisitor {
@@ -184,12 +242,6 @@ export class StatementInterpreter implements StatementVisitor {
 
   visitExpressionStatement(statement: ExpressionStatement) {
     return this.expressionInterpreter.interpret(statement.expression);  
-  }
-
-  visitPrintStatement(statement: PrintStatement) {
-    const value = this.expressionInterpreter.interpret(statement.expression);
-
-    console.log(value);
   }
 
   visitVariableDeclarationStatement(statement: VariableDeclarationStatement) {
@@ -207,7 +259,7 @@ export class StatementInterpreter implements StatementVisitor {
       if (environment.isDefinedInScope(variableName)) {
         throw new TSLoxError('Runtime', variableDeclaration.identifier.location, `identifier '${variableName}' is already declared in current scope`);
       }
- 
+
       environment.define(variableName, initializerValue);
     }
   }
@@ -219,6 +271,25 @@ export class StatementInterpreter implements StatementVisitor {
 
     if (environment.outerScope) {
       environment = environment.outerScope;
+    }
+  }
+
+  visitIfStatement(statement: IfStatement) {
+    const conditionValue = this.expressionInterpreter.interpret(statement.condition);
+
+    if (conditionValue) {
+      statement.trueStatement.accept(this);
+    } else {
+      statement.falseStatement?.accept(this);
+    }
+  }
+
+  visitWhileStatement(statement: WhileStatement) {
+    let conditionValue = this.expressionInterpreter.interpret(statement.condition);
+
+    while (conditionValue) {
+      statement.body.accept(this);
+      conditionValue = this.expressionInterpreter.interpret(statement.condition);
     }
   }
 }
