@@ -5,9 +5,15 @@ import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfSt
 
 export class Parser {
   private current: number;
+  private _hasError: boolean;
 
   constructor(private tokens: Token[], private errorReporter: ErrorReporter) {
     this.current = 0;
+    this._hasError = false;
+  }
+
+  public get hasError() {
+    return this._hasError;
   }
 
   private isEOF() {
@@ -346,25 +352,33 @@ export class Parser {
     }
   }
 
-  parse(): Statement[] | null {
+  private sync() {
+    while (!this.match(TokenType.SEMICOLON, TokenType.CLOSE_BRACE) && !this.isEOF()) {
+      this.advance();
+    }
+  }
+
+  parse(): Statement[] {
     let statements: Statement[] = [];
 
-    try {
-      while (!this.isEOF()) {
+    while (!this.isEOF()) {
+      try {
         const statement = this.statement();
 
         if (statement) {
           statements.push(statement);
         }
+      } catch(err) {
+        if (err instanceof TSLoxError) {
+          this.errorReporter.report(err);
+          this._hasError = true;
+          this.sync();
+        } else {
+          throw err;
+        }
       }
-
-      return statements;
-    } catch(err) {
-      let _err = err as TSLoxError;
-
-      this.errorReporter.report(_err);
-
-      return null;
     }
+
+    return statements;
   }
 }

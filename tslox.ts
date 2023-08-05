@@ -22,7 +22,7 @@ async function main() {
   const parser = new Parser(tokens, errorReporter);
   const statements = parser.parse();
 
-  if (statements) {
+  if (!parser.hasError) {
     statementInterpreter.interpret(statements);
   }
 }
