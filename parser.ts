@@ -70,11 +70,47 @@ export class Parser {
     const startToken: Token = this.curToken;
     let expr = this.ternary();
 
-    if (this.match(TokenType.EQ)) {
+    if (this.match(TokenType.EQ, TokenType.PLUS_EQ, TokenType.MINUS_EQ, TokenType.SLASH_EQ)) {
       if (expr instanceof Literal && expr.value.type === TokenType.IDENTIFIER) {
+        const operator = this.previous();
         const rValue = this.assignment();
+        const rValueLocation = rValue.location;
 
-        expr = new AssignmentExpression(startToken.location, expr.value, rValue);
+        function buildOpAssignmentExpression(op: TokenType) {
+          return new AssignmentExpression(
+            startToken.location,
+            (expr as Literal).value,
+            new BinaryExpression(
+              rValueLocation,
+              expr,
+              { location: { row: rValueLocation.row, col: rValueLocation.col + 1 }, type: op },
+              rValue
+            )
+          );
+        }
+
+        switch (operator.type) {
+          case TokenType.EQ: {
+            expr = new AssignmentExpression(startToken.location, expr.value, rValue);
+            break;
+          }
+          case TokenType.PLUS_EQ: {
+            expr = buildOpAssignmentExpression(TokenType.PLUS)
+            break;
+          }
+          case TokenType.MINUS_EQ: {
+            expr = buildOpAssignmentExpression(TokenType.MINUS)
+            break;
+          }
+          case TokenType.MUL_EQ: {
+            expr = buildOpAssignmentExpression(TokenType.MUL)
+            break;
+          }
+          case TokenType.SLASH_EQ: {
+            expr = buildOpAssignmentExpression(TokenType.SLASH)
+            break;
+          } 
+        }
       } else {
         throw new TSLoxError('Syntax', startToken.location, 'invalid assignment expression');
       }

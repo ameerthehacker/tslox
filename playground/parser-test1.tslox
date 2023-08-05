@@ -3,7 +3,7 @@ function makeCounter(initialValue) {
 
     function count() {
         i = i + 1;
-        print(i)
+        print(i);
     }
 
     return count;
@@ -25,10 +25,10 @@ count2();
 count2();
 count2();
 
-print("fib example!")
+print("fib example!");
 let i = 0;
 
 while (i <= 10) {
     print(fib(i));
-    i = i + 1;
+    i += 1;
 }

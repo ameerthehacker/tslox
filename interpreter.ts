@@ -253,8 +253,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       }
 
       const args = expr.args.map(arg => this.interpret(arg));
-      const oldEnvironment = currentEnvironment;
-
+      
       return loxCallable.call(...args);
     } else {
       throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);

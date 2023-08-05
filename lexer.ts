@@ -15,6 +15,10 @@ export enum TokenType {
   EQ = '=',
   EQ_EQ = '==',
   PLUS = '+',
+  PLUS_EQ = '+=',
+  MINUS_EQ = '-=',
+  MUL_EQ = '*=',
+  SLASH_EQ = '/=',
   MINUS = '-',
   CARET = '^',
   MUL = '*',
@@ -30,7 +34,6 @@ export enum TokenType {
   NONE = 'none',
   QUESTION_MARK = '?',
   COLON = ':',
-  PRINT = 'print',
   LET = 'let',
   COMMA = ',',
   IF = 'if',
@@ -216,8 +219,14 @@ export default class Lexer {
           })
           break;
         case TokenType.SLASH:
-          if (this.match('/')) {
+          if (this.match(TokenType.SLASH)) {
             while (this.peek() !== '\n' && !this.isEOF()) this.advance();
+          }
+          else if (this.match(TokenType.EQ)) {
+            this.addToken({
+              type: TokenType.SLASH_EQ,
+              location: this.curLocation
+            });
           } else if (this.match('*')) {
             // comments can be multi lined
             while (!(this.peek() === '*' && this.peekNext() === '/')) {
@@ -345,22 +354,43 @@ export default class Lexer {
           });
           break;
         case TokenType.PLUS:
-          this.addToken({
-            type: TokenType.PLUS,
-            location: this.curLocation
-          });
+          if (this.match(TokenType.EQ)) {
+            this.addToken({
+              type: TokenType.PLUS_EQ,
+              location: this.curLocation
+            });
+          } else {
+            this.addToken({
+              type: TokenType.PLUS,
+              location: this.curLocation
+            });
+          }
           break;
         case TokenType.MINUS:
-          this.addToken({
-            type: TokenType.MINUS,
-            location: this.curLocation
-          });
+          if (this.match(TokenType.EQ)) {
+            this.addToken({
+              type: TokenType.MINUS_EQ,
+              location: this.curLocation
+            });
+          } else {
+            this.addToken({
+              type: TokenType.MINUS,
+              location: this.curLocation
+            });
+          }
           break;
         case TokenType.MUL:
-          this.addToken({
-            type: TokenType.MUL,
-            location: this.curLocation
-          });
+          if (this.match(TokenType.EQ)) {
+            this.addToken({
+              type: TokenType.MUL_EQ,
+              location: this.curLocation
+            });
+          } else {
+            this.addToken({
+              type: TokenType.MUL,
+              location: this.curLocation
+            });
+          }
           break;
         case '"':
           this.eatString();
