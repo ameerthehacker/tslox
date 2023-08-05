@@ -1,6 +1,6 @@
 import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
-import { TokenType } from "./lexer";
+import { Token, TokenType } from "./lexer";
 import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
@@ -9,36 +9,36 @@ const Errors = {
 } 
 
 class Environment {
-  private map: Map<string, any> = new Map()
+  private declarations: Map<string, any> = new Map()
 
   constructor(private _outerScope?: Environment) {}
 
   define(variableName: string, value: any) {
-    this.map.set(variableName, value);
+    this.declarations.set(variableName, value);
   }
 
   assign(variableName: string, value: any) {
     if (this.isDefinedInScope(variableName)) {
-      this.map.set(variableName, value);
+      this.declarations.set(variableName, value);
     } else {
       this._outerScope?.assign(variableName, value);
     }
   }
 
   get(variableName: string): any {
-    if (this.map.has(variableName)) {
-      return this.map.get(variableName)
+    if (this.declarations.has(variableName)) {
+      return this.declarations.get(variableName)
     } else {
       return this._outerScope?.get(variableName);
     }
   }
 
   isDefined(variableName: string): boolean {
-    return this.map.has(variableName) || Boolean(this._outerScope?.isDefined(variableName));
+    return this.declarations.has(variableName) || Boolean(this._outerScope?.isDefined(variableName));
   }
 
   isDefinedInScope(variableName: string): boolean {
-    return this.map.has(variableName);
+    return this.declarations.has(variableName);
   }
 
   public get outerScope() {
@@ -46,7 +46,7 @@ class Environment {
   }
 }
 
-let environment = new Environment();
+let currentEnvironment = new Environment();
 
 abstract class LoxCallable {
   constructor(public arity: number) {}
@@ -57,12 +57,12 @@ abstract class LoxCallable {
 }
 
 class LoxCallableFn extends LoxCallable {
-  constructor(private outerScopeEnvironment: Environment, private functionDeclaration: FunctionDeclarationStatement, private interpreter: StatementInterpreter) {
+  constructor(private closure: Environment, private functionDeclaration: FunctionDeclarationStatement, private interpreter: StatementInterpreter) {
     super(functionDeclaration.args.length);
   }
 
   call(...args: any[]) {
-    const environment = new Environment(this.outerScopeEnvironment);
+    const environment = new Environment(this.closure);
     const argNames = this.functionDeclaration.args.map(arg => arg.literalValue as string);
 
     argNames.forEach((argName, index) => environment.define(argName, args[index]));
@@ -88,7 +88,7 @@ class NativeClock extends NativeLoxCallable {
     super(arity);
   }
 
-  call(...args: any[]) {
+  call( ...args: any[]) {
     return performance.now();  
   }
 }
@@ -103,8 +103,8 @@ class NativePrint extends NativeLoxCallable {
   }
 }
 
-environment.define('clock', new NativeClock(0));
-environment.define('print', new NativePrint(1));
+currentEnvironment.define('clock', new NativeClock(0));
+currentEnvironment.define('print', new NativePrint(1));
 
 export class ExpressionInterpreter implements ExpressionVisitor {
   constructor() {}
@@ -130,8 +130,8 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     if (expr.value.type === TokenType.IDENTIFIER) {
       const variableName = expr.value.literalValue as string;
 
-      if (environment.isDefined(variableName)) {
-        return environment.get(expr.value.literalValue as string);
+      if (currentEnvironment.isDefined(variableName)) {
+        return currentEnvironment.get(expr.value.literalValue as string);
       } else {
         throw Errors.undefinedVariable(variableName, expr.value.location);
       }
@@ -174,8 +174,6 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 
   visitBinaryExpr(expr: BinaryExpression) {
-   
-
     switch(expr.operator.type) {
       case TokenType.CARET: {
         return Math.pow(this.assertNumber(expr.leftExpr), this.assertNumber(expr.rightExpr));
@@ -223,8 +221,8 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     const variableName = expr.lValue.literalValue as string;
     const value = this.interpret(expr.rValue);
 
-    if (environment.isDefined(variableName)) {
-      environment.assign(variableName, value);
+    if (currentEnvironment.isDefined(variableName)) {
+      currentEnvironment.assign(variableName, value);
     } else {
       throw Errors.undefinedVariable(variableName, expr.lValue.location);
     }
@@ -241,14 +239,21 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       }
 
       const args = expr.args.map(arg => this.interpret(arg));
-      
+      const oldEnvironment = currentEnvironment;
+
       try {
         loxCallable.call(...args);
       } catch (err) {
-        if (err instanceof ReturnStatementError) {
+        if (err instanceof ReturnStatementError) {  
           if (err.returnStatement.returnExpr) {
-            return this.interpret(err.returnStatement.returnExpr);
+            const returnValue = this.interpret(err.returnStatement.returnExpr);
+
+            currentEnvironment = oldEnvironment;
+  
+            return returnValue;
           }
+        } else {
+          throw err;
         }
       }
 
@@ -278,31 +283,31 @@ export class StatementInterpreter implements StatementVisitor {
         initializerValue = this.expressionInterpreter.interpret(initializer);
       }
 
-      if (environment.isDefinedInScope(variableName)) {
+      if (currentEnvironment.isDefinedInScope(variableName)) {
         throw new TSLoxError('Runtime', variableDeclaration.identifier.location, `identifier '${variableName}' is already declared in current scope`);
       }
 
-      environment.define(variableName, initializerValue);
+      currentEnvironment.define(variableName, initializerValue);
     }
   }
 
-  interpretBlockStatement(blockStatement: BlockStatement, env: Environment) {
-    environment = env;
+  interpretBlockStatement(blockStatement: BlockStatement, environment: Environment) {
+    const oldEnvironment = currentEnvironment;
+
+    currentEnvironment = environment;
     blockStatement.statements.forEach(statement => statement.accept(this));
 
-    if (environment.outerScope) {
-      environment = environment.outerScope;
-    }
+    currentEnvironment = oldEnvironment;
   }
 
   visitBlockStatement(statement: BlockStatement) {
-    this.interpretBlockStatement(statement, new Environment(environment));
+    this.interpretBlockStatement(statement, new Environment(currentEnvironment));
   }
 
   visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement) {
     const functionName = statement.functionName.literalValue as string;
 
-    environment.define(functionName, new LoxCallableFn(environment, statement, this));
+    currentEnvironment.define(functionName, new LoxCallableFn(new Environment(currentEnvironment), statement, this));
   }
 
   visitIfStatement(statement: IfStatement) {
