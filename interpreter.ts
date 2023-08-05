@@ -64,10 +64,24 @@ class LoxCallableFn extends LoxCallable {
   call(...args: any[]) {
     const environment = new Environment(this.closure);
     const argNames = this.functionDeclaration.args.map(arg => arg.literalValue as string);
+    const oldEnvironment = currentEnvironment;
 
     argNames.forEach((argName, index) => environment.define(argName, args[index]));
 
-    this.interpreter.interpretBlockStatement(this.functionDeclaration.body, environment);
+    try {
+      this.interpreter.interpretBlockStatement(this.functionDeclaration.body, environment);
+    } catch (err) {
+      if (err instanceof ReturnStatementError) {  
+        if (err.returnStatement.returnExpr) {
+          const returnValue = this.interpreter.interpretExpression(err.returnStatement.returnExpr);
+          currentEnvironment = oldEnvironment;
+
+          return returnValue;
+        }
+      } else {
+        throw err;
+      }
+    }
   }
 
   toString(): string {
@@ -241,23 +255,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       const args = expr.args.map(arg => this.interpret(arg));
       const oldEnvironment = currentEnvironment;
 
-      try {
-        loxCallable.call(...args);
-      } catch (err) {
-        if (err instanceof ReturnStatementError) {  
-          if (err.returnStatement.returnExpr) {
-            const returnValue = this.interpret(err.returnStatement.returnExpr);
-
-            currentEnvironment = oldEnvironment;
-  
-            return returnValue;
-          }
-        } else {
-          throw err;
-        }
-      }
-
-      return 0;
+      return loxCallable.call(...args);
     } else {
       throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);
     }
@@ -296,7 +294,6 @@ export class StatementInterpreter implements StatementVisitor {
 
     currentEnvironment = environment;
     blockStatement.statements.forEach(statement => statement.accept(this));
-
     currentEnvironment = oldEnvironment;
   }
 
@@ -311,7 +308,7 @@ export class StatementInterpreter implements StatementVisitor {
   }
 
   visitIfStatement(statement: IfStatement) {
-    const conditionValue = this.expressionInterpreter.interpret(statement.condition);
+    const conditionValue = this.interpretExpression(statement.condition);
 
     if (conditionValue) {
       statement.trueStatement.accept(this);
@@ -321,16 +318,20 @@ export class StatementInterpreter implements StatementVisitor {
   }
 
   visitWhileStatement(statement: WhileStatement) {
-    let conditionValue = this.expressionInterpreter.interpret(statement.condition);
+    let conditionValue = this.interpretExpression(statement.condition);
 
     while (conditionValue) {
       statement.body.accept(this);
-      conditionValue = this.expressionInterpreter.interpret(statement.condition);
+      conditionValue = this.interpretExpression(statement.condition);
     }
   }
 
   visitReturnStatement(statement: ReturnStatement) {
     throw new ReturnStatementError(statement);
+  }
+
+  interpretExpression(expression: Expression) {
+    return this.expressionInterpreter.interpret(expression);
   }
 
   interpret(statements: Statement[]) {
