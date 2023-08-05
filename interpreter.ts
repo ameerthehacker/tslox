@@ -161,6 +161,34 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       case TokenType.PLUS: {
         return this.assertNumber(expr.expr);
       }
+      case TokenType.PLUS_PLUS: {
+        if (expr.expr instanceof Literal) {
+          if (expr.expr.value.type === TokenType.IDENTIFIER) {
+            const oldValue = this.assertNumber(expr.expr);
+            const newValue = oldValue + 1;
+
+            currentEnvironment.assign(expr.expr.value.literalValue as string, newValue);
+
+            return expr.isPostfix? oldValue: newValue;
+          }
+        } else {
+          throw new TSLoxError('Runtime', expr.expr.location, 'operand of increment operator must be an identifier');
+        }
+      }
+      case TokenType.MINUS_MINUS: {
+        if (expr.expr instanceof Literal) {
+          if (expr.expr.value.type === TokenType.IDENTIFIER) {
+            const oldValue = this.assertNumber(expr.expr);
+            const newValue = oldValue - 1;
+
+            currentEnvironment.assign(expr.expr.value.literalValue as string, newValue);
+            
+            return expr.isPostfix? oldValue: newValue;
+          }
+        } else {
+          throw new TSLoxError('Runtime', expr.expr.location, 'operand of decrement operator must be an identifier');
+        }
+      }
       case TokenType.BANG: {
         const value = this.interpret(expr.expr);
 
@@ -253,7 +281,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       }
 
       const args = expr.args.map(arg => this.interpret(arg));
-      
+
       return loxCallable.call(...args);
     } else {
       throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);

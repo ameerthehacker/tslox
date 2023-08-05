@@ -15,11 +15,13 @@ export enum TokenType {
   EQ = '=',
   EQ_EQ = '==',
   PLUS = '+',
+  PLUS_PLUS = '++',
   PLUS_EQ = '+=',
   MINUS_EQ = '-=',
   MUL_EQ = '*=',
   SLASH_EQ = '/=',
   MINUS = '-',
+  MINUS_MINUS = '--',
   CARET = '^',
   MUL = '*',
   OPEN_BRACE = '{',
@@ -354,7 +356,13 @@ export default class Lexer {
           });
           break;
         case TokenType.PLUS:
-          if (this.match(TokenType.EQ)) {
+          if (this.match(TokenType.PLUS)) {
+            this.addToken({
+              type: TokenType.PLUS_PLUS,
+              location: this.curLocation
+            });
+          }
+          else if (this.match(TokenType.EQ)) {
             this.addToken({
               type: TokenType.PLUS_EQ,
               location: this.curLocation
@@ -367,7 +375,13 @@ export default class Lexer {
           }
           break;
         case TokenType.MINUS:
-          if (this.match(TokenType.EQ)) {
+          if (this.match(TokenType.MINUS)) {
+            this.addToken({
+              type: TokenType.MINUS_MINUS,
+              location: this.curLocation
+            });
+          }
+          else if (this.match(TokenType.EQ)) {
             this.addToken({
               type: TokenType.MINUS_EQ,
               location: this.curLocation

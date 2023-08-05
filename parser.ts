@@ -184,8 +184,25 @@ export class Parser {
     return expr;
   }
 
+  private jumpBack() {
+    return this.tokens[--this.current];
+  }
+
   private unary(): Expression {
-    if (this.match(TokenType.MINUS, TokenType.PLUS, TokenType.BANG)) {
+    // check for postfix operators
+    if (this.match(TokenType.IDENTIFIER)) {
+      const identifier = this.previous();
+      if (this.match(TokenType.PLUS_PLUS, TokenType.MINUS_MINUS)) {
+        const operator = this.previous();
+        return new UnaryExpression(operator.location, operator, new Literal(identifier), true);
+      } else {
+        // it was not a postfix ++ or -- operation so go back
+        this.jumpBack();
+      }
+    }
+
+    // check for prefix operators
+    if (this.match(TokenType.MINUS, TokenType.PLUS, TokenType.BANG, TokenType.PLUS_PLUS, TokenType.MINUS_MINUS)) {
       const operator = this.previous();
       const rightExpr = this.unary();
 

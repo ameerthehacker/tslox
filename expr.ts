@@ -43,7 +43,12 @@ export class BinaryExpression extends Expression {
 }
 
 export class UnaryExpression extends Expression {
-  constructor(public location: TokenLocation, public operator: Token, public expr: Expression) {
+  constructor(
+    public location: TokenLocation,
+    public operator: Token,
+    public expr: Expression,
+    public isPostfix: boolean = false
+  ) {
     super(location);
   }
 
