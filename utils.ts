@@ -36,7 +36,7 @@ class ExpressionPrinter implements ExpressionVisitor {
   }
 
   visitAssignmentExpr(expr: AssignmentExpression)  {
-    return this.parenthesis(`${expr.lValue.literalValue} =`, expr.rValue);
+    return this.parenthesis(`${expr.lValue.value.literalValue} =`, expr.rValue);
   }
 
   visitFunctionCallExpr(expr: FunctionCallExpression) {

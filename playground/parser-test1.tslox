@@ -1,11 +1,15 @@
 let a = "global";
+let b = "global";
 
 {
+  let b = "inside-block";
   function showA() {
     print(a);
+    print(b);
   }
 
   showA();
   let a = "block";
+  b = "new b value";
   showA();
 }

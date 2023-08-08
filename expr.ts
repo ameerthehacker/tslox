@@ -58,7 +58,7 @@ export class UnaryExpression extends Expression {
 }
 
 export class AssignmentExpression extends Expression {
-  constructor(public location: TokenLocation, public lValue: Token, public rValue: Expression) {
+  constructor(public location: TokenLocation, public lValue: Literal, public rValue: Expression) {
     super(location);
   }
 

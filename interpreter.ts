@@ -1,6 +1,7 @@
 import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
-import { Token, TokenType } from "./lexer";
+import { TokenType } from "./lexer";
+import { Bindings } from "./resolver";
 import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
@@ -17,19 +18,50 @@ class Environment {
     this.declarations.set(variableName, value);
   }
 
-  assign(variableName: string, value: any) {
-    if (this.isDefinedInScope(variableName)) {
-      this.declarations.set(variableName, value);
-    } else {
-      this._outerScope?.assign(variableName, value);
+  assign(variableName: string, value: any, depth?: number) {
+    if (depth !== undefined) {
+      const environment = this.resolve(depth);
+
+      return environment?.setValue(variableName, value);
+    } 
+    else {
+      this.setGlobalVariable(variableName, value);
     }
   }
 
-  get(variableName: string): any {
-    if (this.declarations.has(variableName)) {
-      return this.declarations.get(variableName)
+  getValue(variableName: string) {
+    return this.declarations.get(variableName);
+  }
+
+  setValue(variableName: string, value: any) {
+    this.declarations.set(variableName, value);
+  }
+
+  private getGlobalVariable(variableName: string) {
+    return this.getGlobalEnvironment().getValue(variableName);
+  }
+
+  private setGlobalVariable(variableName: string, value: any) {
+    this.getGlobalEnvironment()?.setValue(variableName, value);
+  }
+
+  private getGlobalEnvironment() {
+    let environment: Environment | undefined = this;
+
+    while (environment?._outerScope) {
+      environment = environment.outerScope;
+    }
+
+    return environment as Environment;
+  }
+
+  get(variableName: string, depth?: number): any {
+    if (depth !== undefined) {
+      const environment = this.resolve(depth);
+
+      return environment?.getValue(variableName);
     } else {
-      return this._outerScope?.get(variableName);
+      return this.getGlobalVariable(variableName);
     }
   }
 
@@ -39,6 +71,16 @@ class Environment {
 
   isDefinedInScope(variableName: string): boolean {
     return this.declarations.has(variableName);
+  }
+
+  resolve(depth: number): Environment | undefined {
+    let environment: Environment | undefined = this;
+
+    for (let i = 0; i < depth; i++) {
+      environment = environment?._outerScope;
+    }
+
+    return environment;
   }
 
   public get outerScope() {
@@ -121,7 +163,7 @@ currentEnvironment.define('clock', new NativeClock(0));
 currentEnvironment.define('print', new NativePrint(1));
 
 export class ExpressionInterpreter implements ExpressionVisitor {
-  constructor() {}
+  constructor(private bindings: Bindings) {}
 
   public interpret(expr: Expression): any {
     return expr.accept(this);
@@ -145,7 +187,9 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       const variableName = expr.value.literalValue as string;
 
       if (currentEnvironment.isDefined(variableName)) {
-        return currentEnvironment.get(expr.value.literalValue as string);
+        const depth = this.bindings.get(expr);
+
+        return currentEnvironment.get(variableName, depth);
       } else {
         throw Errors.undefinedVariable(variableName, expr.value.location);
       }
@@ -167,7 +211,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
             const oldValue = this.assertNumber(expr.expr);
             const newValue = oldValue + 1;
 
-            currentEnvironment.assign(expr.expr.value.literalValue as string, newValue);
+            currentEnvironment.assign(expr.expr.value.literalValue as string, newValue, this.bindings.get(expr.expr));
 
             return expr.isPostfix? oldValue: newValue;
           }
@@ -181,7 +225,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
             const oldValue = this.assertNumber(expr.expr);
             const newValue = oldValue - 1;
 
-            currentEnvironment.assign(expr.expr.value.literalValue as string, newValue);
+            currentEnvironment.assign(expr.expr.value.literalValue as string, newValue, this.bindings.get(expr.expr));
             
             return expr.isPostfix? oldValue: newValue;
           }
@@ -260,11 +304,11 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 
   visitAssignmentExpr(expr: AssignmentExpression) {
-    const variableName = expr.lValue.literalValue as string;
+    const variableName = expr.lValue.value.literalValue as string;
     const value = this.interpret(expr.rValue);
 
     if (currentEnvironment.isDefined(variableName)) {
-      currentEnvironment.assign(variableName, value);
+      currentEnvironment.assign(variableName, value, this.bindings.get(expr.lValue));
     } else {
       throw Errors.undefinedVariable(variableName, expr.lValue.location);
     }
@@ -290,7 +334,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
 }
 
 export class TSLoxInterpreter implements StatementVisitor {
-  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter) {}
+  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter, private bindings: Bindings) {}
 
   visitExpressionStatement(statement: ExpressionStatement) {
     return this.expressionInterpreter.interpret(statement.expression);  

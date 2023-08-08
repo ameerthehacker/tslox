@@ -79,7 +79,7 @@ export class Parser {
         function buildOpAssignmentExpression(op: TokenType) {
           return new AssignmentExpression(
             startToken.location,
-            (expr as Literal).value,
+            expr as Literal,
             new BinaryExpression(
               rValueLocation,
               expr,
@@ -91,7 +91,7 @@ export class Parser {
 
         switch (operator.type) {
           case TokenType.EQ: {
-            expr = new AssignmentExpression(startToken.location, expr.value, rValue);
+            expr = new AssignmentExpression(startToken.location, expr, rValue);
             break;
           }
           case TokenType.PLUS_EQ: {

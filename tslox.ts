@@ -4,6 +4,7 @@ import ConsoleErrorReporter from './error';
 import Lexer from './lexer';
 import { Parser } from './parser';
 import { ExpressionInterpreter, TSLoxInterpreter } from './interpreter';
+import { Resolver } from './resolver';
 
 async function main() {
   if (process.argv.length === 2) {
@@ -15,15 +16,18 @@ async function main() {
   const scriptFilePath = process.argv[2];
   const scriptFileContent = await fs.readFile(scriptFilePath, 'utf-8');
   const errorReporter = new ConsoleErrorReporter();
-  const expressionInterpreter = new ExpressionInterpreter();
-  const statementInterpreter = new TSLoxInterpreter(expressionInterpreter, errorReporter);
   const lexer = new Lexer(scriptFileContent, errorReporter);
   const tokens = lexer.lex();
   const parser = new Parser(tokens, errorReporter);
   const statements = parser.parse();
 
   if (!parser.hasError) {
-    statementInterpreter.interpret(statements);
+    const resolver = new Resolver(statements);
+    const bindings = resolver.resolve();
+    const expressionInterpreter = new ExpressionInterpreter(bindings);
+    const interpreter = new TSLoxInterpreter(expressionInterpreter, errorReporter, bindings);
+
+    interpreter.interpret(statements);
   }
 }
 

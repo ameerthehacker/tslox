@@ -1,8 +1,9 @@
+import { TSLoxError } from "./error";
 import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
-import { TokenType } from "./lexer";
+import { Token, TokenType } from "./lexer";
 import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
-export type Bindings = Map<string, number>;
+export type Bindings = Map<Expression | Token, number>;
 
 type Scope = Map<string, boolean>;
 
@@ -36,7 +37,13 @@ class Scopes {
   }
 
   findDepth(variableName: string) {
-    return this.stack.findIndex((scope) => scope.get(variableName));
+    const depth = this.stack.findIndex((scope) => scope.get(variableName));
+
+    if (depth === -1) {
+      return null;
+    }
+
+    return this.stack.length - depth - 1;
   }
 
   isEmpty() {
@@ -62,35 +69,68 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
   }
 
   define(variableName: string) {
-    this.scopes.peek().set(variableName, false);
-  }
+    if (this.scopes.isEmpty()) return;
 
-  declare(variableName: string) {
     this.scopes.peek().set(variableName, true);
   }
 
+  declare(variableName: string) {
+    if (this.scopes.isEmpty()) return;
+
+    this.scopes.peek().set(variableName, false);
+  }
+
+  resolveBinding(expr: Literal) {
+    const depth = this.scopes.findDepth(expr.value.literalValue as string);
+
+    if (depth !== null) {
+      this.bindings.set(expr, depth);
+    }
+  }
+
+  resolveLocal(expr: Literal) {
+    if (expr.value.type === TokenType.IDENTIFIER) {
+      const variableName = expr.value.literalValue as string;
+     
+      if (!this.scopes.isEmpty() && this.scopes.peek().get(variableName) === false) {
+        throw new TSLoxError('Syntax', expr.location, 'cannot use same variable for initialization');
+      }
+
+      this.resolveBinding(expr);
+    }
+  }
+
   visitLiteral(expr: Literal) {
-    
+    this.resolveLocal(expr);
   }
 
   visitTernaryExpr(expr: TernaryExpression) {
-
+    this.resolveExpr(expr.conditionalExpression);
+    this.resolveExpr(expr.truthyExpression);
+    this.resolveExpr(expr.falsyExpression);
   }
 
   visitBinaryExpr(expr: BinaryExpression) {
-
+    this.resolveExpr(expr.leftExpr);
+    this.resolveExpr(expr.rightExpr);
   }
 
   visitUnaryExpr(expr: UnaryExpression) {
-
+    this.resolveExpr(expr.expr);
   }
 
   visitGroupingExpr(expr: GroupingExpression) {
-
+    this.resolveExpr(expr.expr);
   }
 
   visitFunctionCallExpr(expr: FunctionCallExpression) {
+    this.resolveExpr(expr.calle);
+    expr.args.forEach(arg => this.resolveExpr(arg));
+  }
 
+  visitAssignmentExpr(expr: AssignmentExpression) {
+    this.resolveLocal(expr.lValue);
+    this.resolveExpr(expr.rValue);
   }
 
   // statements
@@ -98,20 +138,20 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
   visitVariableDeclarationStatement(statement: VariableDeclarationStatement) {
     statement.declarations.forEach(declaration => {
       const variableName = declaration.identifier.literalValue as string;
-      this.define(variableName);
+      this.declare(variableName);
 
       if (declaration.initializer) {
         this.resolveExpr(declaration.initializer);
       }
 
-      this.declare(variableName);
+      this.define(variableName);
     });
   }
 
   visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement) {
-    this.declare(statement.functionName.literalValue as string);
+    this.define(statement.functionName.literalValue as string);
     this.beginScope();
-    statement.args.forEach(arg => this.declare(arg.literalValue as string));
+    statement.args.forEach(arg => this.define(arg.literalValue as string));
     this.resolveStmt(statement.body);
     this.endScope();
   }
