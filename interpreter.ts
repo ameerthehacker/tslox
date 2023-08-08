@@ -57,7 +57,7 @@ abstract class LoxCallable {
 }
 
 class LoxCallableFn extends LoxCallable {
-  constructor(private closure: Environment, private functionDeclaration: FunctionDeclarationStatement, private interpreter: StatementInterpreter) {
+  constructor(private closure: Environment, private functionDeclaration: FunctionDeclarationStatement, private interpreter: TSLoxInterpreter) {
     super(functionDeclaration.args.length);
   }
 
@@ -289,7 +289,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 }
 
-export class StatementInterpreter implements StatementVisitor {
+export class TSLoxInterpreter implements StatementVisitor {
   constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter) {}
 
   visitExpressionStatement(statement: ExpressionStatement) {

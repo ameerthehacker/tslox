@@ -1,40 +1,11 @@
-function makeCounter(initialValue) {
-    let i = initialValue;
+let a = "global";
 
-    function count() {
-        i = i + 1;
-        print(i);
-    }
+{
+  function showA() {
+    print(a);
+  }
 
-    return count;
+  showA();
+  let a = "block";
+  showA();
 }
-
-function fib(n) {
-    if (n <= 1)
-        return n;
-    return fib(n - 1) + fib(n - 2);
-}
-
-print("closure example!");
-let count1 = makeCounter(0);
-count1();
-count1();
-count1();
-let count2 = makeCounter(-3);
-count2();
-count2();
-count2();
-
-print("fib example!");
-let i = 0;
-
-while (i <= 10) {
-    print(fib(i));
-
-    i++;
-}
-
-print("postfix example!");
-let j = 0;
-print("postfix j: " + j++);
-print("j now: " + j);
