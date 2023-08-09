@@ -1,4 +1,4 @@
-import { Expression } from "./expr";
+import { Expression, Literal } from "./expr";
 import { Token } from "./lexer";
 import { TokenLocation } from "./types";
 
@@ -12,6 +12,7 @@ export interface StatementVisitor {
   visitWhileStatement(statement: WhileStatement): any;
   visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement): any;
   visitReturnStatement(statement: ReturnStatement): any;
+  visitClassDeclarationStatement(statement: ClassDeclarationStatement): any;
 }
 
 export abstract class Statement {
@@ -65,6 +66,16 @@ export class WhileStatement extends Statement {
 
   accept(visitor: StatementVisitor) {
     visitor.visitWhileStatement(this);
+  }
+}
+
+export class ClassDeclarationStatement extends Statement {
+  constructor(public className: Token, public methods: FunctionDeclarationStatement[]) {
+    super();
+  }
+
+  accept(visitor: StatementVisitor) {
+    visitor.visitClassDeclarationStatement(this); 
   }
 }
 

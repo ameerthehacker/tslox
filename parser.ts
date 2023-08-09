@@ -1,7 +1,7 @@
 import { ErrorReporter, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, Expression, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
 export class Parser {
   private current: number;
@@ -209,7 +209,7 @@ export class Parser {
       return new UnaryExpression(operator.location, operator, rightExpr);
     }
 
-    return this.call();
+    return this.classInstantiation();
   }
 
   private call(): Expression {
@@ -234,6 +234,22 @@ export class Parser {
     }
 
     return calle;
+  }
+
+  private classInstantiation(): Expression {
+    const startTokenLocation = this.curToken.location;
+
+    if (this.match(TokenType.NEW)) {
+      const callExpression = this.call();
+
+      if (callExpression instanceof FunctionCallExpression) {
+        return new ClassInstantiationExpression(startTokenLocation, callExpression)
+      } else {
+        throw new TSLoxError('Syntax', startTokenLocation, 'new operator can only be used with classes');
+      }
+    }
+
+    return this.call();
   }
 
   private primary(): Expression {
@@ -339,6 +355,20 @@ export class Parser {
     return new IfStatement(condition, trueStatement, elseStatement);
   }
 
+  private classDeclarationStatement(): ClassDeclarationStatement {
+    const classIdentifier = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, 'expected class name after class keyword'));
+    this.consume(TokenType.OPEN_BRACE, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.OPEN_BRACE} after class name`));
+    const functionDeclarations: FunctionDeclarationStatement[] = [];
+
+    while (!this.isEOF() && !this.check(TokenType.CLOSE_BRACE)) {
+      functionDeclarations.push(this.functionDeclarationStatement('method'));
+    }
+
+    this.consume(TokenType.CLOSE_BRACE, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.CLOSE_BRACE} at end of class declaration`));
+
+    return new ClassDeclarationStatement(classIdentifier, functionDeclarations);
+  }
+
   private whileStatement(): WhileStatement {
     this.consume(TokenType.OPEN_PAREN, new TSLoxError('Syntax', this.curToken.location, `expected '${TokenType.OPEN_PAREN}' before while condition`));
     const condition = this.expression();
@@ -348,14 +378,14 @@ export class Parser {
     return new WhileStatement(condition, body);
   }
 
-  private functionDeclarationStatement(): FunctionDeclarationStatement {
-    const functionName = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, 'expected function name'));
-    this.consume(TokenType.OPEN_PAREN, new TSLoxError('Syntax', functionName.location, `expected ${TokenType.OPEN_PAREN} before function arguments`));
+  private functionDeclarationStatement(kind: 'method' | 'function' = 'function'): FunctionDeclarationStatement {
+    const functionName = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, `expected ${kind} name`));
+    this.consume(TokenType.OPEN_PAREN, new TSLoxError('Syntax', functionName.location, `expected ${TokenType.OPEN_PAREN} before ${kind} arguments`));
     const args: Token[] = [];
 
     if (!this.check(TokenType.CLOSE_PAREN)) {
       do {
-        const arg = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, `expected function argument to be an identifer but got ${this.curToken.type}`));
+        const arg = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, `expected ${kind} argument to be an identifer but got ${this.curToken.type}`));
 
         args.push(arg);
       } while (this.match(TokenType.COMMA))
@@ -382,7 +412,10 @@ export class Parser {
   }
 
   private statement(): Statement {
-    if (this.match(TokenType.RETURN)) {
+    if (this.match(TokenType.CLASS)) {
+      return this.classDeclarationStatement();
+    }
+    else if (this.match(TokenType.RETURN)) {
       return this.returnStatement();
     }
     else if (this.match(TokenType.FUNCTION)) {

@@ -1,6 +1,12 @@
 let a = "global";
 let b = "global";
 
+class Car {
+  start() {
+    print("vroom vrooooom!");
+  }
+}
+
 {
   let b = "inside-block";
   function showA() {
@@ -12,4 +18,5 @@ let b = "global";
   let a = "block";
   b = "new b value";
   showA();
+  print(Car);
 }

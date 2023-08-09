@@ -1,7 +1,7 @@
 import { TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
-import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
 export type Bindings = Map<Expression | Token, number>;
 
@@ -187,6 +187,18 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.resolveExpr(statement.condition);
     this.resolveStmt(statement.body);
   }
+
+  visitClassDeclarationStatement(statement: ClassDeclarationStatement) {
+    this.define(statement.className.literalValue as string);
+
+    this.beginScope();
+    this.resolveStmts(statement.methods);
+    this.endScope();
+  }
+
+  visitClassInstantiationExpression(expr: ClassInstantiationExpression) {
+    this.resolveExpr(expr.callExpression);
+  };
 
   resolveExpr(expression: Expression) {
     expression.accept(this);

@@ -9,6 +9,7 @@ export interface ExpressionVisitor {
   visitGroupingExpr: (expr: GroupingExpression) => any;
   visitLiteral: (expr: Literal) => any;
   visitFunctionCallExpr: (expr: FunctionCallExpression) => any;
+  visitClassInstantiationExpression: (expr: ClassInstantiationExpression) => any;
 }
 
 export abstract class Expression {
@@ -84,6 +85,16 @@ export class FunctionCallExpression extends Expression {
 
   accept(visitor: ExpressionVisitor) {
     return visitor.visitFunctionCallExpr(this);
+  }
+}
+
+export class ClassInstantiationExpression extends Expression {
+  constructor(public location: TokenLocation, public callExpression: FunctionCallExpression) {
+    super(location);
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitClassInstantiationExpression(this);
   }
 }
 

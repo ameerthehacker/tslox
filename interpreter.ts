@@ -1,8 +1,8 @@
 import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { TokenType } from "./lexer";
 import { Bindings } from "./resolver";
-import { BlockStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
+import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
 const Errors = {
@@ -128,6 +128,14 @@ class LoxCallableFn extends LoxCallable {
 
   toString(): string {
     return `fn <${this.functionDeclaration.functionName.literalValue}>`;
+  }
+}
+
+class LoxClass {
+  constructor(public classDeclaration: ClassDeclarationStatement) {}
+
+  toString() {
+    return `class <${this.classDeclaration.className.literalValue}>`;
   }
 }
 
@@ -331,6 +339,16 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);
     }
   }
+
+  visitClassInstantiationExpression(expr: ClassInstantiationExpression) {
+    const loxClass = this.interpret(expr.callExpression.calle);
+
+    if (loxClass instanceof LoxClass) {
+      return {};
+    } else {
+      throw new TSLoxError('Runtime', expr.callExpression.location, `${loxClass} is not a class`);
+    }
+  }
 }
 
 export class TSLoxInterpreter implements StatementVisitor {
@@ -399,6 +417,16 @@ export class TSLoxInterpreter implements StatementVisitor {
 
   visitReturnStatement(statement: ReturnStatement) {
     throw new ReturnStatementError(statement);
+  }
+
+  visitClassDeclarationStatement(statement: ClassDeclarationStatement) {
+    const className = statement.className.literalValue as string;
+
+    if (currentEnvironment.isDefinedInScope(className)) {
+      throw Errors.undefinedVariable(className, statement.className.location);
+    }
+
+    currentEnvironment.define(className, new LoxClass(statement));
   }
 
   interpretExpression(expression: Expression) {
