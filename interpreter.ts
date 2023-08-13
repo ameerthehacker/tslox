@@ -1,12 +1,13 @@
 import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
-import { TokenType } from "./lexer";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { Token, TokenType } from "./lexer";
 import { Bindings } from "./resolver";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 import { TokenLocation } from "./types";
 
 const Errors = {
-  undefinedVariable: (variableName: string, location: TokenLocation) => new TSLoxError('Runtime', location, `undefined variable '${variableName}'`)
+  undefinedVariable: (variableName: string, location: TokenLocation) => new TSLoxError('Runtime', location, `undefined variable '${variableName}'`),
+  propertyOnlyOnClass: (location: TokenLocation) => new TSLoxError('Runtime', location, 'property can be only accessed on a class instance')
 } 
 
 class Environment {
@@ -136,6 +137,38 @@ class LoxClass {
 
   toString() {
     return `class <${this.classDeclaration.className.literalValue}>`;
+  }
+}
+
+class LoxInstance {
+  private fields: Map<string, any>;
+  private methods: Map<string, any>;
+
+  constructor(public loxClass: LoxClass) {
+    this.fields = new Map();
+    this.methods = new Map();
+  }
+
+  getProperty(property: Token) {
+    const propertyName = property.literalValue as string;
+
+    if (this.fields.has(propertyName)) {
+      return this.fields.get(propertyName);
+    } else if (this.methods.has(propertyName)) {
+      return this.methods.get(propertyName);
+    } else {
+      throw new TSLoxError('Runtime', property.location, `accessing undefined property ${propertyName} on instance`);
+    }
+  }
+
+  setField(property: Token, value: any) {
+    const propertyName = property.literalValue as string;
+    
+    this.fields.set(propertyName, value);
+  }
+
+  toString() {
+   return `instance <${this.loxClass.classDeclaration.className.literalValue}>`;
   }
 }
 
@@ -312,13 +345,24 @@ export class ExpressionInterpreter implements ExpressionVisitor {
   }
 
   visitAssignmentExpr(expr: AssignmentExpression) {
-    const variableName = expr.lValue.value.literalValue as string;
     const value = this.interpret(expr.rValue);
 
-    if (currentEnvironment.isDefined(variableName)) {
-      currentEnvironment.assign(variableName, value, this.bindings.get(expr.lValue));
-    } else {
-      throw Errors.undefinedVariable(variableName, expr.lValue.location);
+    if (expr.lValue instanceof Literal) {
+      const variableName = expr.lValue.value.literalValue as string;
+
+      if (currentEnvironment.isDefined(variableName)) {
+        currentEnvironment.assign(variableName, value, this.bindings.get(expr.lValue));
+      } else {
+        throw Errors.undefinedVariable(variableName, expr.lValue.location);
+      }
+    } else if (expr.lValue instanceof InstanceGetExpression) {
+      const instance = this.interpret(expr.lValue.instance);
+
+      if (instance instanceof LoxInstance) {
+        instance.setField(expr.lValue.property, value);
+      } else {
+        throw Errors.propertyOnlyOnClass(expr.lValue.location);
+      }
     }
 
     return value;
@@ -344,9 +388,19 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     const loxClass = this.interpret(expr.callExpression.calle);
 
     if (loxClass instanceof LoxClass) {
-      return {};
+      return new LoxInstance(loxClass);
     } else {
       throw new TSLoxError('Runtime', expr.callExpression.location, `${loxClass} is not a class`);
+    }
+  }
+
+  visitInstanceGetExpression(expr: InstanceGetExpression) {
+    const instance = this.interpret(expr.instance);
+
+    if (instance instanceof LoxInstance) {
+      return instance.getProperty(expr.property);
+    } else {
+      throw Errors.propertyOnlyOnClass(expr.property.location);
     }
   }
 }

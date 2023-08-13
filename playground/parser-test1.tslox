@@ -18,5 +18,10 @@ class Car {
   let a = "block";
   b = "new b value";
   showA();
-  print(Car);
+  let newCar = new Car();
+
+  newCar.prop = "new property";
+
+  print(newCar);
+  print(newCar.prop);
 }

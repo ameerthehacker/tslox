@@ -44,7 +44,8 @@ export enum TokenType {
   FUNCTION = 'function',
   RETURN = 'return',
   CLASS = 'class',
-  NEW = 'new'
+  NEW = 'new',
+  DOT = '.'
 }
 
 const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -412,6 +413,13 @@ export default class Lexer {
           break;
         case '"':
           this.eatString();
+
+          break;
+        case TokenType.DOT:
+          this.addToken({
+            type: TokenType.DOT,
+            location: this.curLocation
+          });
 
           break;
         default:

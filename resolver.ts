@@ -1,5 +1,5 @@
 import { TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
@@ -129,8 +129,20 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
   }
 
   visitAssignmentExpr(expr: AssignmentExpression) {
-    this.resolveLocal(expr.lValue);
+    if (expr.lValue instanceof Literal) {
+      this.resolveLocal(expr.lValue);
+    } else if (expr.lValue instanceof InstanceGetExpression) {
+      this.resolveExpr(expr.lValue);
+    }
     this.resolveExpr(expr.rValue);
+  }
+
+  visitClassInstantiationExpression(expr: ClassInstantiationExpression) {
+    this.resolveExpr(expr.callExpression);
+  }
+
+  visitInstanceGetExpression(expr: InstanceGetExpression) {
+    this.resolveExpr(expr.instance);
   }
 
   // statements
@@ -195,10 +207,6 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.resolveStmts(statement.methods);
     this.endScope();
   }
-
-  visitClassInstantiationExpression(expr: ClassInstantiationExpression) {
-    this.resolveExpr(expr.callExpression);
-  };
 
   resolveExpr(expression: Expression) {
     expression.accept(this);

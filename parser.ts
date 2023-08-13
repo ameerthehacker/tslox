@@ -1,5 +1,5 @@
 import { ErrorReporter, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
@@ -71,7 +71,10 @@ export class Parser {
     let expr = this.ternary();
 
     if (this.match(TokenType.EQ, TokenType.PLUS_EQ, TokenType.MINUS_EQ, TokenType.SLASH_EQ)) {
-      if (expr instanceof Literal && expr.value.type === TokenType.IDENTIFIER) {
+      if (
+        (expr instanceof Literal && expr.value.type === TokenType.IDENTIFIER) ||
+        expr instanceof InstanceGetExpression
+      ) {
         const operator = this.previous();
         const rValue = this.assignment();
         const rValueLocation = rValue.location;
@@ -228,6 +231,10 @@ export class Parser {
         this.consume(TokenType.CLOSE_PAREN, new TSLoxError('Syntax', calle.location, `expected ${TokenType.CLOSE_PAREN} after function call`));
 
         calle = new FunctionCallExpression(calle.location, calle, args);
+      } else if (this.match(TokenType.DOT)) {
+        const property = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, `expected property name after ${TokenType.DOT} operator`));
+
+        calle = new InstanceGetExpression(calle.location, calle, property);
       } else {
         break;
       }

@@ -10,6 +10,7 @@ export interface ExpressionVisitor {
   visitLiteral: (expr: Literal) => any;
   visitFunctionCallExpr: (expr: FunctionCallExpression) => any;
   visitClassInstantiationExpression: (expr: ClassInstantiationExpression) => any;
+  visitInstanceGetExpression: (expr: InstanceGetExpression) => any;
 }
 
 export abstract class Expression {
@@ -59,7 +60,7 @@ export class UnaryExpression extends Expression {
 }
 
 export class AssignmentExpression extends Expression {
-  constructor(public location: TokenLocation, public lValue: Literal, public rValue: Expression) {
+  constructor(public location: TokenLocation, public lValue: Literal | InstanceGetExpression, public rValue: Expression) {
     super(location);
   }
 
@@ -95,6 +96,16 @@ export class ClassInstantiationExpression extends Expression {
 
   accept(visitor: ExpressionVisitor) {
     return visitor.visitClassInstantiationExpression(this);
+  }
+}
+
+export class InstanceGetExpression extends Expression {
+  constructor(location: TokenLocation, public instance: Expression, public property: Token) {
+    super(location);
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitInstanceGetExpression(this);
   }
 }
 
