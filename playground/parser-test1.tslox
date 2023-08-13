@@ -24,4 +24,5 @@ class Car {
 
   print(newCar);
   print(newCar.prop);
+  newCar.start();
 }

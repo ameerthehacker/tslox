@@ -104,6 +104,10 @@ class LoxCallableFn extends LoxCallable {
     super(functionDeclaration.args.length);
   }
 
+  get functionName() {
+    return this.functionDeclaration.functionName.literalValue as string;
+  }
+
   call(...args: any[]) {
     const environment = new Environment(this.closure);
     const argNames = this.functionDeclaration.args.map(arg => arg.literalValue as string);
@@ -133,7 +137,15 @@ class LoxCallableFn extends LoxCallable {
 }
 
 class LoxClass {
-  constructor(public classDeclaration: ClassDeclarationStatement) {}
+  private methods: LoxCallableFn[];
+
+  constructor(public classDeclaration: ClassDeclarationStatement, interpreter: TSLoxInterpreter) {
+    this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(currentEnvironment, fn, interpreter))
+  }
+
+  findMethod(methodName: string) {
+    return this.methods.find(method => method.functionName === methodName);
+  }
 
   toString() {
     return `class <${this.classDeclaration.className.literalValue}>`;
@@ -142,11 +154,9 @@ class LoxClass {
 
 class LoxInstance {
   private fields: Map<string, any>;
-  private methods: Map<string, any>;
 
   constructor(public loxClass: LoxClass) {
     this.fields = new Map();
-    this.methods = new Map();
   }
 
   getProperty(property: Token) {
@@ -154,10 +164,11 @@ class LoxInstance {
 
     if (this.fields.has(propertyName)) {
       return this.fields.get(propertyName);
-    } else if (this.methods.has(propertyName)) {
-      return this.methods.get(propertyName);
     } else {
-      throw new TSLoxError('Runtime', property.location, `accessing undefined property ${propertyName} on instance`);
+      const method = this.loxClass.findMethod(propertyName);
+
+      if (method) return method;
+      else throw new TSLoxError('Runtime', property.location, `accessing undefined property ${propertyName} on instance`);
     }
   }
 
@@ -480,7 +491,7 @@ export class TSLoxInterpreter implements StatementVisitor {
       throw Errors.undefinedVariable(className, statement.className.location);
     }
 
-    currentEnvironment.define(className, new LoxClass(statement));
+    currentEnvironment.define(className, new LoxClass(statement, this));
   }
 
   interpretExpression(expression: Expression) {
