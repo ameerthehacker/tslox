@@ -154,7 +154,7 @@ class LoxClass {
   private methods: LoxCallableFn[];
 
   constructor(public classDeclaration: ClassDeclarationStatement, interpreter: TSLoxInterpreter) {
-    this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(currentEnvironment, fn, interpreter))
+    this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(new Environment(currentEnvironment), fn, interpreter))
   }
 
   findMethod(methodName: string) {
