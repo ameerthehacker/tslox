@@ -1,5 +1,5 @@
 import { TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
@@ -80,8 +80,8 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.scopes.peek().set(variableName, false);
   }
 
-  resolveBinding(expr: Literal) {
-    const depth = this.scopes.findDepth(expr.value.literalValue as string);
+  resolveBinding(expr: Expression, variableName: string) {
+    const depth = this.scopes.findDepth(variableName);
 
     if (depth !== null) {
       this.bindings.set(expr, depth);
@@ -91,12 +91,12 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
   resolveLocal(expr: Literal) {
     if (expr.value.type === TokenType.IDENTIFIER) {
       const variableName = expr.value.literalValue as string;
-     
+
       if (!this.scopes.isEmpty() && this.scopes.peek().get(variableName) === false) {
         throw new TSLoxError('Syntax', expr.location, 'cannot use same variable for initialization');
       }
 
-      this.resolveBinding(expr);
+      this.resolveBinding(expr, variableName);
     }
   }
 
@@ -145,6 +145,10 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.resolveExpr(expr.instance);
   }
 
+  visitThisExpression(expr: ThisExpression) {
+    this.resolveBinding(expr, TokenType.THIS);
+  }
+
   // statements
 
   visitVariableDeclarationStatement(statement: VariableDeclarationStatement) {
@@ -164,7 +168,7 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.define(statement.functionName.literalValue as string);
     this.beginScope();
     statement.args.forEach(arg => this.define(arg.literalValue as string));
-    this.resolveStmt(statement.body);
+    this.resolveStmts(statement.body.statements);
     this.endScope();
   }
   
@@ -204,6 +208,7 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.define(statement.className.literalValue as string);
 
     this.beginScope();
+    this.define(TokenType.THIS);
     this.resolveStmts(statement.methods);
     this.endScope();
   }

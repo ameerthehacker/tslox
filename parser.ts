@@ -1,6 +1,6 @@
 import { ErrorReporter, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
-import { Token, TokenType } from "./lexer";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
+import { RESERVED_KEYWORDS, Token, TokenType } from "./lexer";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
 export class Parser {
@@ -273,6 +273,10 @@ export class Parser {
       const token = this.previous();
 
       return new Literal(token);
+    }
+
+    if (this.match(TokenType.THIS)) {
+      return new ThisExpression(this.previous().location);
     }
 
     const startToken = this.curToken;

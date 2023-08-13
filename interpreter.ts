@@ -1,5 +1,5 @@
 import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { Bindings } from "./resolver";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
@@ -100,16 +100,30 @@ abstract class LoxCallable {
 }
 
 class LoxCallableFn extends LoxCallable {
+  private loxInstance: LoxInstance | null;
+
   constructor(private closure: Environment, private functionDeclaration: FunctionDeclarationStatement, private interpreter: TSLoxInterpreter) {
     super(functionDeclaration.args.length);
+    this.loxInstance = null;
   }
 
   get functionName() {
     return this.functionDeclaration.functionName.literalValue as string;
   }
 
+  bind(loxInstance: LoxInstance) {
+    this.loxInstance = loxInstance;
+
+    return this;
+  }
+
   call(...args: any[]) {
-    const environment = new Environment(this.closure);
+    let environment = new Environment(this.closure);
+
+    if (this.loxInstance !== null) {
+      this.closure.define(TokenType.THIS, this.loxInstance);
+    }
+
     const argNames = this.functionDeclaration.args.map(arg => arg.literalValue as string);
     const oldEnvironment = currentEnvironment;
 
@@ -167,7 +181,7 @@ class LoxInstance {
     } else {
       const method = this.loxClass.findMethod(propertyName);
 
-      if (method) return method;
+      if (method) return method.bind(this);
       else throw new TSLoxError('Runtime', property.location, `accessing undefined property ${propertyName} on instance`);
     }
   }
@@ -229,6 +243,12 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     } else {
       return value as number;
     }
+  }
+
+  visitThisExpression(expr: ThisExpression) {
+    const depth = this.bindings.get(expr);
+
+    return currentEnvironment.get(TokenType.THIS, depth);
   }
 
   visitLiteral(expr: Literal) {
@@ -417,7 +437,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
 }
 
 export class TSLoxInterpreter implements StatementVisitor {
-  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter, private bindings: Bindings) {}
+  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter) {}
 
   visitExpressionStatement(statement: ExpressionStatement) {
     return this.expressionInterpreter.interpret(statement.expression);  
@@ -458,7 +478,7 @@ export class TSLoxInterpreter implements StatementVisitor {
   visitFunctionDeclarationStatement(statement: FunctionDeclarationStatement) {
     const functionName = statement.functionName.literalValue as string;
 
-    currentEnvironment.define(functionName, new LoxCallableFn(new Environment(currentEnvironment), statement, this));
+    currentEnvironment.define(functionName, new LoxCallableFn(currentEnvironment, statement, this));
   }
 
   visitIfStatement(statement: IfStatement) {

@@ -11,6 +11,7 @@ export interface ExpressionVisitor {
   visitFunctionCallExpr: (expr: FunctionCallExpression) => any;
   visitClassInstantiationExpression: (expr: ClassInstantiationExpression) => any;
   visitInstanceGetExpression: (expr: InstanceGetExpression) => any;
+  visitThisExpression: (expr: ThisExpression) => any;
 }
 
 export abstract class Expression {
@@ -106,6 +107,16 @@ export class InstanceGetExpression extends Expression {
 
   accept(visitor: ExpressionVisitor) {
     return visitor.visitInstanceGetExpression(this);
+  }
+}
+
+export class ThisExpression extends Expression {
+  constructor(location: TokenLocation) {
+    super(location);
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitThisExpression(this);
   }
 }
 

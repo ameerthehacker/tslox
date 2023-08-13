@@ -3,7 +3,7 @@ let b = "global";
 
 class Car {
   start() {
-    print("vroom vrooooom!");
+    print("starting " + this.name + " vroom vrooooom!");
   }
 }
 
@@ -20,9 +20,8 @@ class Car {
   showA();
   let newCar = new Car();
 
-  newCar.prop = "new property";
+  newCar.name = "BMW";
 
-  print(newCar);
-  print(newCar.prop);
+  print(newCar.name);
   newCar.start();
 }

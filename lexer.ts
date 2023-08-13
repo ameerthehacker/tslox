@@ -45,10 +45,11 @@ export enum TokenType {
   RETURN = 'return',
   CLASS = 'class',
   NEW = 'new',
-  DOT = '.'
+  DOT = '.',
+  THIS = 'this'
 }
 
-const RESERVED_KEYWORDS: Record<string, TokenType> = {
+export const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.FOR]: TokenType.FOR,
   [TokenType.TRUE]: TokenType.TRUE,
   [TokenType.FALSE]: TokenType.FALSE,
@@ -60,7 +61,8 @@ const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.FUNCTION]: TokenType.FUNCTION,
   [TokenType.RETURN]: TokenType.RETURN,
   [TokenType.CLASS]: TokenType.CLASS,
-  [TokenType.NEW]: TokenType.NEW
+  [TokenType.NEW]: TokenType.NEW,
+  [TokenType.THIS]: TokenType.THIS
 };
 
 export type Token = {
