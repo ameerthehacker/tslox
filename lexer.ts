@@ -171,8 +171,14 @@ export default class Lexer {
       this.start,
       this.current
     );
-    const tokenType =
+    
+    let tokenType =
       RESERVED_KEYWORDS[identifierLiteralValue] || TokenType.IDENTIFIER;
+
+    if (identifierLiteralValue === 'constructor') {
+      // in JS constructor property is part of a object :)
+      tokenType = TokenType.IDENTIFIER;
+    }
 
     this.addToken({
       type: tokenType,

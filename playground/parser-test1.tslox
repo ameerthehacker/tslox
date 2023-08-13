@@ -2,6 +2,10 @@ let a = "global";
 let b = "global";
 
 class Car {
+  constructor(name) {
+    this.name = name;
+  }
+  
   start() {
     print("starting " + this.name + " vroom vrooooom!");
   }
@@ -18,9 +22,7 @@ class Car {
   let a = "block";
   b = "new b value";
   showA();
-  let newCar = new Car();
-
-  newCar.name = "BMW";
+  let newCar = new Car("Mercedes");
 
   print(newCar.name);
   newCar.start();

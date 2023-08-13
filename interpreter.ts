@@ -157,6 +157,16 @@ class LoxClass {
     this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(new Environment(currentEnvironment), fn, interpreter))
   }
 
+  get arity() {
+    const constructor = this.findMethod('constructor');
+
+    if (constructor) {
+      return constructor.arity;
+    } else {
+      return 0;
+    }
+  }
+
   findMethod(methodName: string) {
     return this.methods.find(method => method.functionName === methodName);
   }
@@ -419,7 +429,22 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     const loxClass = this.interpret(expr.callExpression.calle);
 
     if (loxClass instanceof LoxClass) {
-      return new LoxInstance(loxClass);
+      if (loxClass.arity != expr.callExpression.args.length) {
+        throw new TSLoxError(
+          'Runtime', expr.callExpression.calle.location,
+          `expected ${loxClass.arity} args but got ${expr.callExpression.args.length}`
+        )
+      }
+      const loxInstance = new LoxInstance(loxClass);
+      const constructor = loxClass.findMethod('constructor')?.bind(loxInstance);
+
+      // execute the constructor
+      if (constructor) {
+        const args = expr.callExpression.args.map(arg => this.interpret(arg));
+        constructor.call(...args);
+      }
+
+      return loxInstance;
     } else {
       throw new TSLoxError('Runtime', expr.callExpression.location, `${loxClass} is not a class`);
     }
