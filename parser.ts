@@ -1,5 +1,5 @@
 import { ErrorReporter, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, SuperExpression, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
 import { RESERVED_KEYWORDS, Token, TokenType } from "./lexer";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, VariableDeclaration, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
@@ -277,6 +277,14 @@ export class Parser {
 
     if (this.match(TokenType.THIS)) {
       return new ThisExpression(this.previous().location);
+    }
+
+    if (this.match(TokenType.SUPER)) {
+      const superLocation = this.previous().location;
+      this.consume(TokenType.DOT, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.DOT} after ${TokenType.SUPER} keyword`));
+      const property = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, `expected identifier after ${TokenType.DOT}`));
+
+      return new SuperExpression(superLocation, property);
     }
 
     const startToken = this.curToken;

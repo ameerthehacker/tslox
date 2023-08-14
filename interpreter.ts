@@ -1,5 +1,5 @@
 import { ErrorReporter, ReturnStatementError, TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, SuperExpression, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { Bindings } from "./resolver";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
@@ -154,7 +154,9 @@ class LoxClass {
   private methods: LoxCallableFn[];
 
   constructor(public classDeclaration: ClassDeclarationStatement, interpreter: TSLoxInterpreter, public superClass: LoxClass | null = null) {
-    this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(new Environment(currentEnvironment), fn, interpreter))
+    const classEnvironment = new Environment(currentEnvironment);
+    classEnvironment.define(TokenType.SUPER, superClass);
+    this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(classEnvironment, fn, interpreter))
   }
 
   get arity() {
@@ -265,6 +267,17 @@ export class ExpressionInterpreter implements ExpressionVisitor {
     const depth = this.bindings.get(expr);
 
     return currentEnvironment.get(TokenType.THIS, depth);
+  }
+
+  visitSuperExpression(expr: SuperExpression) {
+    const depth = this.bindings.get(expr);
+    const superClass = currentEnvironment.get(TokenType.SUPER, depth);
+    
+    if (superClass && superClass instanceof LoxClass) {
+      return superClass.findMethod(expr.property.literalValue as string);
+    } else {
+      throw new TSLoxError('Runtime', expr.location, 'cannot use super in class which does not inherit any class');
+    }
   }
 
   visitLiteral(expr: Literal) {

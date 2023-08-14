@@ -16,6 +16,11 @@ class RaceCar extends Car {
     this.name = name;
   }
 
+  start() {
+    print("calibrating racing instruments for " + this.name);
+    super.start();
+  }
+
   race() {
     print("racing " + this.name + " at full speed ");
   }

@@ -1,5 +1,5 @@
 import { TSLoxError } from "./error";
-import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
+import { AssignmentExpression, BinaryExpression, ClassInstantiationExpression, Expression, ExpressionVisitor, FunctionCallExpression, GroupingExpression, InstanceGetExpression, Literal, SuperExpression, TernaryExpression, ThisExpression, UnaryExpression } from "./expr";
 import { Token, TokenType } from "./lexer";
 import { BlockStatement, ClassDeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, IfStatement, ReturnStatement, Statement, StatementVisitor, VariableDeclarationStatement, WhileStatement } from "./stmt";
 
@@ -149,6 +149,11 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
     this.resolveBinding(expr, TokenType.THIS);
   }
 
+
+  visitSuperExpression(expr: SuperExpression) {
+    this.resolveBinding(expr, TokenType.SUPER);
+  }
+
   // statements
 
   visitVariableDeclarationStatement(statement: VariableDeclarationStatement) {
@@ -213,6 +218,7 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
 
     this.beginScope();
     this.define(TokenType.THIS);
+    this.define(TokenType.SUPER);
     this.resolveStmts(statement.methods);
     this.endScope();
   }

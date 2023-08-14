@@ -12,6 +12,7 @@ export interface ExpressionVisitor {
   visitClassInstantiationExpression: (expr: ClassInstantiationExpression) => any;
   visitInstanceGetExpression: (expr: InstanceGetExpression) => any;
   visitThisExpression: (expr: ThisExpression) => any;
+  visitSuperExpression: (expr: SuperExpression) => any;
 }
 
 export abstract class Expression {
@@ -107,6 +108,16 @@ export class InstanceGetExpression extends Expression {
 
   accept(visitor: ExpressionVisitor) {
     return visitor.visitInstanceGetExpression(this);
+  }
+}
+
+export class SuperExpression extends Expression {
+  constructor(location: TokenLocation, public property: Token) {
+    super(location);
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitSuperExpression(this);
   }
 }
 

@@ -48,7 +48,8 @@ export enum TokenType {
   DOT = '.',
   THIS = 'this',
   EXTENDS = 'extends',
-  CONSTRUCTOR = 'constructor'
+  CONSTRUCTOR = 'constructor',
+  SUPER = 'super'
 }
 
 export const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -66,7 +67,8 @@ export const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.NEW]: TokenType.NEW,
   [TokenType.THIS]: TokenType.THIS,
   [TokenType.EXTENDS]: TokenType.EXTENDS,
-  [TokenType.CONSTRUCTOR]: TokenType.IDENTIFIER
+  [TokenType.CONSTRUCTOR]: TokenType.IDENTIFIER,
+  [TokenType.SUPER]: TokenType.SUPER
 };
 
 export type Token = {
