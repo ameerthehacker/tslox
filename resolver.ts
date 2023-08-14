@@ -207,6 +207,10 @@ export class Resolver implements StatementVisitor, ExpressionVisitor {
   visitClassDeclarationStatement(statement: ClassDeclarationStatement) {
     this.define(statement.className.literalValue as string);
 
+    if (statement.superClass) {
+      this.resolveLocal(statement.superClass)
+    }
+
     this.beginScope();
     this.define(TokenType.THIS);
     this.resolveStmts(statement.methods);

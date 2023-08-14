@@ -368,6 +368,12 @@ export class Parser {
 
   private classDeclarationStatement(): ClassDeclarationStatement {
     const classIdentifier = this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, 'expected class name after class keyword'));
+    let superClass: Literal | null = null;
+
+    if (this.match(TokenType.EXTENDS)) {
+      superClass = new Literal(this.consume(TokenType.IDENTIFIER, new TSLoxError('Syntax', this.curToken.location, 'expected super class name after extends keyword')));
+    }
+
     this.consume(TokenType.OPEN_BRACE, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.OPEN_BRACE} after class name`));
     const functionDeclarations: FunctionDeclarationStatement[] = [];
 
@@ -377,7 +383,7 @@ export class Parser {
 
     this.consume(TokenType.CLOSE_BRACE, new TSLoxError('Syntax', this.curToken.location, `expected ${TokenType.CLOSE_BRACE} at end of class declaration`));
 
-    return new ClassDeclarationStatement(classIdentifier, functionDeclarations);
+    return new ClassDeclarationStatement(classIdentifier, functionDeclarations, superClass);
   }
 
   private whileStatement(): WhileStatement {

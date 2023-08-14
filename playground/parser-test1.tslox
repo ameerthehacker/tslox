@@ -11,6 +11,16 @@ class Car {
   }
 }
 
+class RaceCar extends Car {
+  constructor(name) {
+    this.name = name;
+  }
+
+  race() {
+    print("racing " + this.name + " at full speed ");
+  }
+}
+
 {
   let b = "inside-block";
   function showA() {
@@ -22,8 +32,11 @@ class Car {
   let a = "block";
   b = "new b value";
   showA();
-  let newCar = Car("Mercedes");
+  let car = new Car("Mercedes");
+  let raceCar = new RaceCar("F1");
 
-  print(newCar.name);
-  newCar.start();
+  print(car.name);
+  car.start();
+  raceCar.start();
+  raceCar.race();
 }

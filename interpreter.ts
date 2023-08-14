@@ -153,12 +153,12 @@ class LoxCallableFn extends LoxCallable {
 class LoxClass {
   private methods: LoxCallableFn[];
 
-  constructor(public classDeclaration: ClassDeclarationStatement, interpreter: TSLoxInterpreter) {
+  constructor(public classDeclaration: ClassDeclarationStatement, interpreter: TSLoxInterpreter, public superClass: LoxClass | null = null) {
     this.methods = classDeclaration.methods.map(fn => new LoxCallableFn(new Environment(currentEnvironment), fn, interpreter))
   }
 
   get arity() {
-    const constructor = this.findMethod('constructor');
+    const constructor = this.findMethod(TokenType.CONSTRUCTOR);
 
     if (constructor) {
       return constructor.arity;
@@ -167,8 +167,14 @@ class LoxClass {
     }
   }
 
-  findMethod(methodName: string) {
-    return this.methods.find(method => method.functionName === methodName);
+  findMethod(methodName: string): LoxCallableFn | undefined {
+    const currentClassMethod = this.methods.find(method => method.functionName === methodName);
+
+    if (!currentClassMethod) {
+      return this.superClass?.findMethod(methodName);
+    } else {
+      return currentClassMethod;
+    }
   }
 
   toString() {
@@ -465,7 +471,7 @@ export class ExpressionInterpreter implements ExpressionVisitor {
 }
 
 export class TSLoxInterpreter implements StatementVisitor {
-  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter) {}
+  constructor(private expressionInterpreter: ExpressionInterpreter, private errorReporter: ErrorReporter, private bindings: Bindings) {}
 
   visitExpressionStatement(statement: ExpressionStatement) {
     return this.expressionInterpreter.interpret(statement.expression);  
@@ -534,12 +540,29 @@ export class TSLoxInterpreter implements StatementVisitor {
 
   visitClassDeclarationStatement(statement: ClassDeclarationStatement) {
     const className = statement.className.literalValue as string;
+    let superClass: LoxClass | null = null;
 
     if (currentEnvironment.isDefinedInScope(className)) {
       throw Errors.undefinedVariable(className, statement.className.location);
     }
 
-    currentEnvironment.define(className, new LoxClass(statement, this));
+    if (statement.superClass) {
+      const superClassName = statement.superClass.value.literalValue as string;
+
+      if (currentEnvironment.isDefined(superClassName)) {
+        const _superClass = currentEnvironment.get(superClassName, this.bindings.get(statement.superClass));
+
+        if (_superClass instanceof LoxClass) {
+          superClass = _superClass;
+        } else {
+          throw new TSLoxError('Runtime', statement.superClass.location, `super class '${superClassName}' needs to be a class`);
+        }
+      } else {
+        throw Errors.undefinedVariable(superClassName, statement.superClass.location);
+      }
+    }
+
+    currentEnvironment.define(className, new LoxClass(statement, this, superClass));
   }
 
   interpretExpression(expression: Expression) {

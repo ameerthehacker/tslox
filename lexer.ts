@@ -46,7 +46,9 @@ export enum TokenType {
   CLASS = 'class',
   NEW = 'new',
   DOT = '.',
-  THIS = 'this'
+  THIS = 'this',
+  EXTENDS = 'extends',
+  CONSTRUCTOR = 'constructor'
 }
 
 export const RESERVED_KEYWORDS: Record<string, TokenType> = {
@@ -62,7 +64,9 @@ export const RESERVED_KEYWORDS: Record<string, TokenType> = {
   [TokenType.RETURN]: TokenType.RETURN,
   [TokenType.CLASS]: TokenType.CLASS,
   [TokenType.NEW]: TokenType.NEW,
-  [TokenType.THIS]: TokenType.THIS
+  [TokenType.THIS]: TokenType.THIS,
+  [TokenType.EXTENDS]: TokenType.EXTENDS,
+  [TokenType.CONSTRUCTOR]: TokenType.IDENTIFIER
 };
 
 export type Token = {
@@ -172,13 +176,7 @@ export default class Lexer {
       this.current
     );
     
-    let tokenType =
-      RESERVED_KEYWORDS[identifierLiteralValue] || TokenType.IDENTIFIER;
-
-    if (identifierLiteralValue === 'constructor') {
-      // in JS constructor property is part of a object :)
-      tokenType = TokenType.IDENTIFIER;
-    }
+    let tokenType = RESERVED_KEYWORDS[identifierLiteralValue] || TokenType.IDENTIFIER;
 
     this.addToken({
       type: tokenType,

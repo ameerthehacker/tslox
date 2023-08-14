@@ -70,7 +70,7 @@ export class WhileStatement extends Statement {
 }
 
 export class ClassDeclarationStatement extends Statement {
-  constructor(public className: Token, public methods: FunctionDeclarationStatement[]) {
+  constructor(public className: Token, public methods: FunctionDeclarationStatement[], public superClass: Literal | null = null) {
     super();
   }
 

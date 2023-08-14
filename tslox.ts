@@ -25,7 +25,7 @@ async function main() {
     const resolver = new Resolver(statements);
     const bindings = resolver.resolve();
     const expressionInterpreter = new ExpressionInterpreter(bindings);
-    const interpreter = new TSLoxInterpreter(expressionInterpreter, errorReporter);
+    const interpreter = new TSLoxInterpreter(expressionInterpreter, errorReporter, bindings);
 
     interpreter.interpret(statements);
   }
