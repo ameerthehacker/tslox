@@ -22,7 +22,7 @@ class Car {
   let a = "block";
   b = "new b value";
   showA();
-  let newCar = new Car("Mercedes");
+  let newCar = Car("Mercedes");
 
   print(newCar.name);
   newCar.start();

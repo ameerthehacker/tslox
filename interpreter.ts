@@ -420,7 +420,10 @@ export class ExpressionInterpreter implements ExpressionVisitor {
       const args = expr.args.map(arg => this.interpret(arg));
 
       return loxCallable.call(...args);
-    } else {
+    } else if (loxCallable instanceof LoxClass) {
+      throw new TSLoxError('Runtime', expr.calle.location, `class '${loxCallable.classDeclaration.className.literalValue}' can be only instantiated using the new operator`);
+    }
+    else {
       throw new TSLoxError('Runtime', expr.calle.location, `'${loxCallable}' is not callable`);
     }
   }
